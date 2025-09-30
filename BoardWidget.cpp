@@ -37,12 +37,29 @@ void BoardWidget::paintEvent(QPaintEvent *) {
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
-    if (event->button() != Qt::LeftButton) return;
+    if (event->button() != Qt::LeftButton) {
+        QWidget::mousePressEvent(event); // Propagate other button events
+        return;
+    }
 
     calculateBoardLayout();
-    
-    // TODO: Implement click-to-move logic
+    const int x = event->position().x();
+    const int y = event->position().y();
+
+    const int col = (x - startX + cellSize / 2) / cellSize;
+    const int row = (y - startY + cellSize / 2) / cellSize;
+    const int targetX = startX + col * cellSize;
+    const int targetY = startY + row * cellSize;
+    if (abs(x - targetX) > cellSize / 3 || abs(y - targetY) > cellSize / 3) {
+        event->ignore(); 
+        return;
+    }
+
+    makeMove({row, col});
+    event->accept(); // Stop propagation of mouse click event
 }
+
+/* Drawing Actions */
 
 void BoardWidget::calculateBoardLayout() {
     cellSize = boardCellSize();
@@ -138,11 +155,28 @@ int BoardWidget::boardCellSize() const {
     return std::min(verticalCellSize, horizontalCellSize);
 }
 
+/* Game Logic */
+
 void BoardWidget::makeMove(BoardPosition position) {
     if (position.row < 0 || position.row >= boardSize || position.col < 0 || position.col >= boardSize) return;
     if (board[position.row][position.col] != EMPTY) return; // Cell already occupied
 
     board[position.row][position.col] = blackTurn ? BLACK : WHITE;
     blackTurn = !blackTurn; // Switch turn
+    checkWinner();
+    update();
+}
+
+void BoardWidget::checkWinner() {
+    // TODO: Implement win checking logic
+    _winner = EMPTY; // Placeholder
+}
+
+void BoardWidget::resetGame() {
+    for (auto &row : board) {
+        std::fill(row.begin(), row.end(), EMPTY);
+    }
+    blackTurn = true;
+    _winner = EMPTY;
     update();
 }
