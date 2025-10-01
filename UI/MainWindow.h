@@ -13,6 +13,9 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
+private:
+    QToolBar *toolbar;
+    QAction *resetAction;
 };
 
 #endif //GOMOKU_MAINWINDOW_H

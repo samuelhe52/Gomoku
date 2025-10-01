@@ -43,11 +43,11 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
     }
 
     calculateBoardLayout();
-    const int x = event->position().x();
-    const int y = event->position().y();
+    const int x = static_cast<int>(event->position().x());
+    const int y = static_cast<int>(event->position().y());
 
-    const int col = (x - startX + cellSize / 2) / cellSize;
-    const int row = (y - startY + cellSize / 2) / cellSize;
+    const int col = static_cast<int>((x - startX + cellSize / 2) / cellSize);
+    const int row = static_cast<int>((y - startY + cellSize / 2) / cellSize);
     const int targetX = startX + col * cellSize;
     const int targetY = startY + row * cellSize;
     if (abs(x - targetX) > cellSize / 3 || abs(y - targetY) > cellSize / 3) {
@@ -68,7 +68,7 @@ void BoardWidget::calculateBoardLayout() {
     startY = (height() - borderSize) / 2;
 }
 
-void BoardWidget::drawBorders(QPainter &painter) {
+void BoardWidget::drawBorders(QPainter &painter) const {
     QColor lineColor = Qt::black;
     QPen borderPen(lineColor, borderWidth, Qt::SolidLine);
     painter.setPen(borderPen);
@@ -77,7 +77,7 @@ void BoardWidget::drawBorders(QPainter &painter) {
     painter.drawRect(borderRect);
 }
 
-void BoardWidget::drawGridLines(QPainter &painter) {
+void BoardWidget::drawGridLines(QPainter &painter) const {
     QColor lineColor = Qt::black;
     QPen linePen(lineColor, linesWidth, Qt::SolidLine);
     painter.setPen(linePen);
@@ -94,7 +94,7 @@ void BoardWidget::drawGridLines(QPainter &painter) {
     }
 }
 
-void BoardWidget::drawCriticalPoints(QPainter &painter) {
+void BoardWidget::drawCriticalPoints(QPainter &painter) const {
     QColor lineColor = Qt::black;
     for (const auto &point : criticalPoints) {
         const int centerX = startX + point.col * cellSize;
@@ -105,13 +105,13 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) {
     }
 }
 
-void BoardWidget::drawStones(QPainter &painter) {
+void BoardWidget::drawStones(QPainter &painter) const {
     for (int row = 0; row < boardSize; ++row) {
         for (int col = 0; col < boardSize; ++col) {
             if (board[row][col] == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
-            const int radius = cellSize / 3 + 1.5;
+            const double radius = static_cast<double>(cellSize) / 3 + 1.5;
             drawStone(painter, QPointF(centerX, centerY), radius, board[row][col] == BLACK);
         }
     }
@@ -146,7 +146,7 @@ void BoardWidget::drawStone(QPainter &painter, QPointF center, double radius, bo
 }
 
 int BoardWidget::criticalPointRadius() const {
-    return std::max(1, (int)(sqrt(boardCellSize()) / 1.5));
+    return std::max(1, static_cast<int>(sqrt(boardCellSize()) / 1.5));
 }
 
 int BoardWidget::boardCellSize() const {

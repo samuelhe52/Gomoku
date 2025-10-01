@@ -14,10 +14,10 @@ find_package(Qt6 COMPONENTS
         REQUIRED)
 
 add_executable(Gomoku main.cpp
-        MainWindow.cpp
-        MainWindow.h
-        BoardWidget.cpp
-        BoardWidget.h)
+        UI/MainWindow.cpp
+        UI/MainWindow.h
+        UI/BoardWidget.cpp
+        UI/BoardWidget.h)
 target_link_libraries(Gomoku
         Qt::Core
         Qt::Gui
