@@ -17,7 +17,9 @@ add_executable(Gomoku main.cpp
         UI/MainWindow.cpp
         UI/MainWindow.h
         UI/BoardWidget.cpp
-        UI/BoardWidget.h)
+        UI/BoardWidget.h
+        Models/BoardManager.cpp
+        Models/BoardManager.h)
 target_link_libraries(Gomoku
         Qt::Core
         Qt::Gui

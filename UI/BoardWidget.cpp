@@ -7,16 +7,12 @@
 #include <QMouseEvent>
 
 BoardWidget::BoardWidget(QWidget *parent)
-    : QWidget(parent), board(boardSize, std::vector<int>(boardSize, 0)) {
-        // Test stone
-        board[3][5] = BLACK;
-        board[3][4] = BLACK;
-        board[4][4] = WHITE;
-        board[5][4] = WHITE;
-        makeMove({7, 7});
-        makeMove({7, 8});
-        makeMove({8, 7});
-        makeMove({8, 8});
+    : QWidget(parent) {
+        // Test stones
+        board.makeMove({7, 7});
+        board.makeMove({7, 8});
+        board.makeMove({8, 7});
+        board.makeMove({8, 8});
     }
 
 void BoardWidget::paintEvent(QPaintEvent *) {
@@ -24,7 +20,7 @@ void BoardWidget::paintEvent(QPaintEvent *) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // Dark yellow background
-    QColor bgColor = QColor(218, 160, 108).darker(100);
+    const QColor bgColor = QColor(218, 160, 108).darker(100);
     painter.fillRect(rect(), bgColor);
 
     // Initialize board layout sizes
@@ -50,12 +46,13 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
     const int row = static_cast<int>((y - startY + cellSize / 2) / cellSize);
     const int targetX = startX + col * cellSize;
     const int targetY = startY + row * cellSize;
-    if (abs(x - targetX) > cellSize / 3 || abs(y - targetY) > cellSize / 3) {
+    if (abs(x - targetX) > cellSize / 2.5 || abs(y - targetY) > cellSize / 2.5) {
         event->ignore(); 
         return;
     }
 
-    makeMove({row, col});
+    board.makeMove({row, col});
+    update(); // Trigger repaint
     event->accept(); // Stop propagation of mouse click event
 }
 
@@ -63,7 +60,7 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
 
 void BoardWidget::calculateBoardLayout() {
     cellSize = boardCellSize();
-    borderSize = cellSize * (boardSize - 1);
+    borderSize = cellSize * (board.size - 1);
     startX = (width() - borderSize) / 2;
     startY = (height() - borderSize) / 2;
 }
@@ -82,12 +79,12 @@ void BoardWidget::drawGridLines(QPainter &painter) const {
     QPen linePen(lineColor, linesWidth, Qt::SolidLine);
     painter.setPen(linePen);
 
-    for (int i = 0; i < boardSize; ++i) {
+    for (int i = 0; i < board.size; ++i) {
         const int x = startX + i * cellSize;
         // Vertical line
         painter.drawLine(x, startY, x, startY + borderSize);
         // Horizontal line
-        for (int j = 0; j < boardSize; ++j) {
+        for (int j = 0; j < board.size; ++j) {
             const int y = startY + j * cellSize;
             painter.drawLine(startX, y, startX + borderSize, y);
         }
@@ -96,7 +93,7 @@ void BoardWidget::drawGridLines(QPainter &painter) const {
 
 void BoardWidget::drawCriticalPoints(QPainter &painter) const {
     QColor lineColor = Qt::black;
-    for (const auto &point : criticalPoints) {
+    for (const auto &point : board.criticalPoints) {
         const int centerX = startX + point.col * cellSize;
         const int centerY = startY + point.row * cellSize;
         const int radius = criticalPointRadius();
@@ -106,13 +103,13 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) const {
 }
 
 void BoardWidget::drawStones(QPainter &painter) const {
-    for (int row = 0; row < boardSize; ++row) {
-        for (int col = 0; col < boardSize; ++col) {
-            if (board[row][col] == EMPTY) continue;
+    for (int row = 0; row < board.size; ++row) {
+        for (int col = 0; col < board.size; ++col) {
+            if (board.getCell(row, col) == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
             const double radius = static_cast<double>(cellSize) / 3 + 1.5;
-            drawStone(painter, QPointF(centerX, centerY), radius, board[row][col] == BLACK);
+            drawStone(painter, QPointF(centerX, centerY), radius, board.getCell(row, col) == BLACK);
         }
     }
 }
@@ -150,33 +147,7 @@ int BoardWidget::criticalPointRadius() const {
 }
 
 int BoardWidget::boardCellSize() const {
-    const int verticalCellSize = width() / boardSize;
-    const int horizontalCellSize = height() / boardSize;
+    const int verticalCellSize = width() / board.size;
+    const int horizontalCellSize = height() / board.size;
     return std::min(verticalCellSize, horizontalCellSize);
-}
-
-/* Game Logic */
-
-void BoardWidget::makeMove(BoardPosition position) {
-    if (position.row < 0 || position.row >= boardSize || position.col < 0 || position.col >= boardSize) return;
-    if (board[position.row][position.col] != EMPTY) return; // Cell already occupied
-
-    board[position.row][position.col] = blackTurn ? BLACK : WHITE;
-    blackTurn = !blackTurn; // Switch turn
-    checkWinner();
-    update();
-}
-
-void BoardWidget::checkWinner() {
-    // TODO: Implement win checking logic
-    _winner = EMPTY; // Placeholder
-}
-
-void BoardWidget::resetGame() {
-    for (auto &row : board) {
-        std::fill(row.begin(), row.end(), EMPTY);
-    }
-    blackTurn = true;
-    _winner = EMPTY;
-    update();
 }
