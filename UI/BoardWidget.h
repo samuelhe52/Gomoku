@@ -15,7 +15,7 @@ class BoardWidget : public QWidget {
 
 public:
     explicit BoardWidget(QWidget *parent = nullptr);
-    void resetGame() { board.resetGame(); update(); }
+    void resetGame() { board.resetGame(); winner = EMPTY; update(); }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -35,6 +35,7 @@ private:
     int borderSize = 0;
     int startX = 0;
     int startY = 0;
+    int winner = EMPTY; // EMPTY if no winner, BLACK if black wins, WHITE if white wins
 
     void calculateBoardLayout();
     [[nodiscard]] int criticalPointRadius() const;

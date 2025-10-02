@@ -21,9 +21,9 @@ public:
     BoardManager();
 
     void resetGame();
-    void makeMove(BoardPosition position);
-    // Returns 0 if no winner, 1 if black wins, 2 if white wins
-    [[nodiscard]] int checkWinner();
+    int makeMove(BoardPosition position);
+    // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
+    [[nodiscard]] int checkWinner() const;
 
     [[nodiscard]] bool blackTurn() const { return _blackTurn; }
     [[nodiscard]] int getCell(const int row, const int col) const { return board[row][col]; }

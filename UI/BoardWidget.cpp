@@ -20,7 +20,7 @@ void BoardWidget::paintEvent(QPaintEvent *) {
     painter.setRenderHint(QPainter::Antialiasing);
 
     // Dark yellow background
-    const QColor bgColor = QColor(218, 160, 108).darker(100);
+    const QColor bgColor = QColor(218, 160, 108);
     painter.fillRect(rect(), bgColor);
 
     // Initialize board layout sizes
@@ -30,11 +30,31 @@ void BoardWidget::paintEvent(QPaintEvent *) {
     drawGridLines(painter);
     drawCriticalPoints(painter);
     drawStones(painter);
+
+    if (winner != EMPTY) {
+        // Semi-transparent overlay
+        QColor overlayColor(0, 0, 0, 100);
+        painter.fillRect(rect(), overlayColor);
+
+        QString winnerText = (winner == BLACK) ? "Black Wins!" : "White Wins!";
+        QFont font = painter.font();
+        font.setPointSize(32);
+        font.setBold(true);
+        painter.setFont(font);
+        painter.setPen(Qt::white);
+        
+        // Draw text at 20% down from top
+        QRect textRect = rect();
+        textRect.setTop(static_cast<int>(rect().height() * 0.2));
+        painter.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop, winnerText);
+    }
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
+    if (winner != EMPTY) return; // Ignore clicks if game is over
     if (event->button() != Qt::LeftButton) {
-        QWidget::mousePressEvent(event); // Propagate other button events
+        // Propagate the event if it's not a left click
+        QWidget::mousePressEvent(event);
         return;
     }
 
@@ -51,7 +71,7 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
-    board.makeMove({row, col});
+    winner = board.makeMove({row, col});
     update(); // Trigger repaint
     event->accept(); // Stop propagation of mouse click event
 }
