@@ -4,6 +4,7 @@
 
 #pragma once
 #include <QMainWindow>
+#include <QToolBar>
 
 #ifndef GOMOKU_MAINWINDOW_H
 #define GOMOKU_MAINWINDOW_H
@@ -14,8 +15,8 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 private:
-    QToolBar *toolbar;
-    QAction *resetAction;
+    QToolBar *toolbar{};
+    QAction *resetAction{};
 };
 
 #endif //GOMOKU_MAINWINDOW_H

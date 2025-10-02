@@ -5,6 +5,8 @@
 #pragma once
 #include <QWidget>
 #include <QGraphicsEffect>
+#include <QPainter>
+#include <QMouseEvent>
 #include "../Models/BoardManager.h"
 
 #ifndef GOMOKU_BOARDWIDGET_H
@@ -36,6 +38,8 @@ private:
     int startX = 0;
     int startY = 0;
     int winner = EMPTY; // EMPTY if no winner, BLACK if black wins, WHITE if white wins
+    // Dark yellow background
+    const QColor bgColor = QColor(218, 160, 108);
 
     void calculateBoardLayout();
     [[nodiscard]] int criticalPointRadius() const;

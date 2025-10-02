@@ -3,24 +3,12 @@
 //
 
 #include "BoardWidget.h"
-#include <QPainter>
-#include <QMouseEvent>
 
-BoardWidget::BoardWidget(QWidget *parent)
-    : QWidget(parent) {
-        // Test stones
-        board.makeMove({7, 7});
-        board.makeMove({7, 8});
-        board.makeMove({8, 7});
-        board.makeMove({8, 8});
-    }
+BoardWidget::BoardWidget(QWidget *parent) : QWidget(parent) {}
 
 void BoardWidget::paintEvent(QPaintEvent *) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-
-    // Dark yellow background
-    const QColor bgColor = QColor(218, 160, 108);
     painter.fillRect(rect(), bgColor);
 
     // Initialize board layout sizes

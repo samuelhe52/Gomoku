@@ -16,6 +16,8 @@ find_package(Qt6 COMPONENTS
 add_executable(Gomoku main.cpp
         UI/MainWindow.cpp
         UI/MainWindow.h
+        UI/GameWidget.cpp
+        UI/GameWidget.h
         UI/BoardWidget.cpp
         UI/BoardWidget.h
         Models/BoardManager.cpp

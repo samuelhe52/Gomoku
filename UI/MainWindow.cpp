@@ -3,21 +3,12 @@
 //
 
 #include "MainWindow.h"
-
-#include <QVBoxLayout>
-#include <QToolBar>
-
-#include "BoardWidget.h"
+#include "GameWidget.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    auto *board = new BoardWidget(this);
-    setCentralWidget(board);
-    toolbar = new QToolBar("Gomoku Game", this);
-    resetAction = new QAction("Reset", this);
-    connect(resetAction, &QAction::triggered, board, &BoardWidget::resetGame);
-    toolbar->addAction(resetAction);
-    addToolBar(Qt::TopToolBarArea, toolbar);
-
+    auto *gameWidget = new GameWidget(this);
+    setCentralWidget(gameWidget);
+    
     setWindowTitle("Gomoku");
-    resize(600, 600);
+    resize(600, 650); // Slightly taller for button
 }

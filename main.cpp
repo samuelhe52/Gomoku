@@ -1,6 +1,4 @@
 #include <QApplication>
-#include <QPushButton>
-#include <thread>
 
 #include "UI/MainWindow.h"
 
