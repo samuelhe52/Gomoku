@@ -49,6 +49,7 @@ private:
     void drawGridLines(QPainter &painter) const;
     void drawCriticalPoints(QPainter &painter) const;
     void drawStones(QPainter &painter) const;
+    void drawWinnerOverlay(QPainter &painter, const QString &winnerText);
 };
 
 #endif //GOMOKU_BOARDWIDGET_H
