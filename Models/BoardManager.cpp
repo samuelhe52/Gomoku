@@ -6,6 +6,12 @@
 
 BoardManager::BoardManager() : board(size, std::vector<int>(size, EMPTY)) {}
 
+const std::vector<BoardPosition> BoardManager::criticalPoints = {
+    {3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}
+};
+
+const int BoardManager::size = 15;
+
 void BoardManager::resetGame() {
     for (auto &row: board) {
         std::fill(row.begin(), row.end(), EMPTY);
@@ -57,4 +63,28 @@ int BoardManager::checkWinner() const {
         }
     }
     return EMPTY;
+}
+
+bool BoardManager::isValidMove(const BoardPosition position) const {
+    return position.row >= 0 && position.row < size &&
+           position.col >= 0 && position.col < size &&
+           board[position.row][position.col] == EMPTY;
+}
+
+bool BoardManager::isBoardFull() const {
+    for (const auto &row : board) {
+        for (const auto &cell : row) {
+            if (cell == EMPTY) return false;
+        }
+    }
+    return true;
+}
+
+bool BoardManager::isBoardEmpty() const {
+    for (const auto &row : board) {
+        for (const auto &cell : row) {
+            if (cell != EMPTY) return false;
+        }
+    }
+    return true;
 }

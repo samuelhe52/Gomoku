@@ -28,17 +28,17 @@ public:
     [[nodiscard]] bool blackTurn() const { return _blackTurn; }
     [[nodiscard]] int getCell(const int row, const int col) const { return board[row][col]; }
     [[nodiscard]] int getCell(const BoardPosition position) const { return board[position.row][position.col]; }
-    const int size = 15; // 15x15 board
+    [[nodiscard]] bool isValidMove(BoardPosition position) const;
+    [[nodiscard]] bool isBoardFull() const;
+    [[nodiscard]] bool isBoardEmpty() const;
+    static const int size;
 
     // Critical points on a 15x15 board
-    const std::vector<BoardPosition> criticalPoints = {
-        {3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}
-    };
+    static const std::vector<BoardPosition> criticalPoints;
 
 private:
     std::vector<std::vector<int>> board;
     bool _blackTurn = true;
 };
-
 
 #endif //GOMOKU_BOARDMANAGER_H

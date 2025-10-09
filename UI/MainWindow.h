@@ -4,7 +4,6 @@
 
 #pragma once
 #include <QMainWindow>
-#include <QToolBar>
 
 #ifndef GOMOKU_MAINWINDOW_H
 #define GOMOKU_MAINWINDOW_H

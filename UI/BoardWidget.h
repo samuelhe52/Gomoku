@@ -7,7 +7,7 @@
 #include <QGraphicsEffect>
 #include <QPainter>
 #include <QMouseEvent>
-#include "../Models/BoardManager.h"
+#include "../Models/GameManager.h"
 
 #ifndef GOMOKU_BOARDWIDGET_H
 #define GOMOKU_BOARDWIDGET_H
@@ -17,7 +17,7 @@ class BoardWidget : public QWidget {
 
 public:
     explicit BoardWidget(QWidget *parent = nullptr);
-    void resetGame() { board.resetGame(); winner = EMPTY; update(); }
+    void resetGame() { game.resetGame(); winner = EMPTY; update(); }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -25,7 +25,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 private:
-    BoardManager board;
+    GameManager game;
 
     [[nodiscard]] int boardCellSize() const;
 
@@ -49,7 +49,7 @@ private:
     void drawGridLines(QPainter &painter) const;
     void drawCriticalPoints(QPainter &painter) const;
     void drawStones(QPainter &painter) const;
-    void drawWinnerOverlay(QPainter &painter, const QString &winnerText);
+    void drawWinnerOverlay(QPainter &painter, const QString &winnerText) const;
 };
 
 #endif //GOMOKU_BOARDWIDGET_H

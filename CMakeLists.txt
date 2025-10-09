@@ -21,7 +21,11 @@ add_executable(Gomoku main.cpp
         UI/BoardWidget.cpp
         UI/BoardWidget.h
         Models/BoardManager.cpp
-        Models/BoardManager.h)
+        Models/BoardManager.h
+        Models/GameManager.cpp
+        Models/GameManager.h
+        Models/GomokuAI.cpp
+        Models/GomokuAI.h)
 target_link_libraries(Gomoku
         Qt::Core
         Qt::Gui

@@ -4,13 +4,13 @@
 
 #pragma once
 
+#include "BoardWidget.h"
+#include "../Models/GameManager.h"
+
 #include <QWidget>
 #include <QPushButton>
 #include <QBoxLayout>
 #include <QPainter>
-
-class BoardWidget;
-class QPushButton;
 
 class GameWidget : public QWidget {
     Q_OBJECT
@@ -25,6 +25,7 @@ private:
     QBoxLayout *buttonLayout{};
     
     void setupUI();
+    
     const QString button_style_sheet = "QPushButton {"
             "  background-color: #6B4423;"
             "  color: #FFF8E7;"

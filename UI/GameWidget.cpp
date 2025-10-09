@@ -3,7 +3,6 @@
 //
 
 #include "GameWidget.h"
-#include "BoardWidget.h"
 
 GameWidget::GameWidget(QWidget *parent) : QWidget(parent) {
     setupUI();
@@ -18,7 +17,7 @@ void GameWidget::setupUI() {
     mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 15);
     mainLayout->setSpacing(5);
-    
+
     board = new BoardWidget(this);
     mainLayout->addWidget(board, 1); // take all available space
     

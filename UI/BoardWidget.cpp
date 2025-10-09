@@ -21,16 +21,7 @@ void BoardWidget::paintEvent(QPaintEvent *) {
 
     if (winner != EMPTY) {
         QString winnerText = (winner == BLACK) ? "Black Wins!" : "White Wins!";
-        QFont font = painter.font();
-        font.setPointSize(32);
-        font.setBold(true);
-        painter.setFont(font);
-        painter.setPen(Qt::white);
-        
-        // Draw text at 20% down from top
-        QRect textRect = rect();
-        textRect.setTop(static_cast<int>(rect().height() * 0.2));
-        painter.drawText(textRect, Qt::AlignHCenter | Qt::AlignTop, winnerText);
+        drawWinnerOverlay(painter, winnerText);
     }
 }
 
@@ -55,7 +46,7 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
-    winner = board.makeMove({row, col});
+    winner = game.makeMove({row, col});
     update(); // Trigger repaint
     event->accept(); // Stop propagation of mouse click event
 }
@@ -64,7 +55,7 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
 
 void BoardWidget::calculateBoardLayout() {
     cellSize = boardCellSize();
-    borderSize = cellSize * (board.size - 1);
+    borderSize = cellSize * (BoardManager::size - 1);
     startX = (width() - borderSize) / 2;
     startY = (height() - borderSize) / 2;
 }
@@ -83,12 +74,12 @@ void BoardWidget::drawGridLines(QPainter &painter) const {
     QPen linePen(lineColor, linesWidth, Qt::SolidLine);
     painter.setPen(linePen);
 
-    for (int i = 0; i < board.size; ++i) {
+    for (int i = 0; i < BoardManager::size; ++i) {
         const int x = startX + i * cellSize;
         // Vertical line
         painter.drawLine(x, startY, x, startY + borderSize);
         // Horizontal line
-        for (int j = 0; j < board.size; ++j) {
+        for (int j = 0; j < BoardManager::size; ++j) {
             const int y = startY + j * cellSize;
             painter.drawLine(startX, y, startX + borderSize, y);
         }
@@ -97,7 +88,7 @@ void BoardWidget::drawGridLines(QPainter &painter) const {
 
 void BoardWidget::drawCriticalPoints(QPainter &painter) const {
     QColor lineColor = Qt::black;
-    for (const auto &point : board.criticalPoints) {
+    for (const auto &point : BoardManager::criticalPoints) {
         const int centerX = startX + point.col * cellSize;
         const int centerY = startY + point.row * cellSize;
         const int radius = criticalPointRadius();
@@ -107,13 +98,13 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) const {
 }
 
 void BoardWidget::drawStones(QPainter &painter) const {
-    for (int row = 0; row < board.size; ++row) {
-        for (int col = 0; col < board.size; ++col) {
-            if (board.getCell(row, col) == EMPTY) continue;
+    for (int row = 0; row < BoardManager::size; ++row) {
+        for (int col = 0; col < BoardManager::size; ++col) {
+            if (game.getCell(row, col) == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
             const double radius = static_cast<double>(cellSize) / 3 + 1.5;
-            drawStone(painter, QPointF(centerX, centerY), radius, board.getCell(row, col) == BLACK);
+            drawStone(painter, QPointF(centerX, centerY), radius, game.getCell(row, col) == BLACK);
         }
     }
 }
@@ -146,23 +137,23 @@ void BoardWidget::drawStone(QPainter &painter, QPointF center, double radius, bo
     painter.drawEllipse(center, radius, radius);
 }
 
-void BoardWidget::drawWinnerOverlay(QPainter &painter, const QString &winnerText) {
+void BoardWidget::drawWinnerOverlay(QPainter &painter, const QString &winnerText) const {
         QFont font = painter.font();
         font.setPointSize(25);
         font.setBold(true);
         painter.setFont(font);
         
         // Calculate text size
-        QFontMetrics metrics(font);
-        QRect textBounds = metrics.boundingRect(winnerText);
-        
+        const QFontMetrics metrics(font);
+        const QRect textBounds = metrics.boundingRect(winnerText);
+
         const int padding = 20;
         const int boxWidth = textBounds.width() + padding * 2;
         const int boxHeight = textBounds.height() + padding * 2;
         
         const int boxX = startX + (borderSize - boxWidth) / 2;
-        const int boxY = startY + (borderSize - boxHeight) / 2 - borderSize * 0.3;
-        QRect backgroundRect(boxX, boxY, boxWidth, boxHeight);
+        const int boxY = startY + (borderSize - boxHeight) / 2 - static_cast<int>(borderSize * 0.3);
+        const QRect backgroundRect(boxX, boxY, boxWidth, boxHeight);
         
         // Background
         painter.setPen(Qt::NoPen);
@@ -183,7 +174,7 @@ int BoardWidget::criticalPointRadius() const {
 }
 
 int BoardWidget::boardCellSize() const {
-    const int verticalCellSize = width() / board.size;
-    const int horizontalCellSize = height() / board.size;
+    const int verticalCellSize = width() / BoardManager::size;
+    const int horizontalCellSize = height() / BoardManager::size;
     return std::min(verticalCellSize, horizontalCellSize);
 }
