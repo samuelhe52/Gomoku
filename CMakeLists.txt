@@ -20,12 +20,15 @@ add_executable(Gomoku main.cpp
         UI/GameWidget.h
         UI/BoardWidget.cpp
         UI/BoardWidget.h
+        UI/ColorChooserWidget.cpp
+        UI/ColorChooserWidget.h
         Models/BoardManager.cpp
         Models/BoardManager.h
         Models/GameManager.cpp
         Models/GameManager.h
         Models/GomokuAI.cpp
         Models/GomokuAI.h)
+
 target_link_libraries(Gomoku
         Qt::Core
         Qt::Gui

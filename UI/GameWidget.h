@@ -5,12 +5,14 @@
 #pragma once
 
 #include "BoardWidget.h"
+#include "ColorChooserWidget.h"
 #include "../Models/GameManager.h"
 
 #include <QWidget>
 #include <QPushButton>
 #include <QBoxLayout>
 #include <QPainter>
+#include <QStackedWidget>
 
 class GameWidget : public QWidget {
     Q_OBJECT
@@ -19,12 +21,16 @@ public:
     explicit GameWidget(QWidget *parent = nullptr);
     
 private:
-    BoardWidget *board{};
-    QPushButton *resetButton{};
-    QBoxLayout *mainLayout{};
-    QBoxLayout *buttonLayout{};
+    BoardWidget *board;
+    QVBoxLayout *overlayLayout;
+    ColorChooserWidget *colorChooser;
+    QStackedWidget *boardStack;
+    QPushButton *resetButton;
+    QBoxLayout *mainLayout;
+    QBoxLayout *buttonLayout;
     
     void setupUI();
+    void onColorChosen(bool playerIsBlack);
     
     const QString button_style_sheet = "QPushButton {"
             "  background-color: #6B4423;"

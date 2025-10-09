@@ -29,8 +29,10 @@ public:
     [[nodiscard]] int getCell(const int row, const int col) const { return board[row][col]; }
     [[nodiscard]] int getCell(const BoardPosition position) const { return board[position.row][position.col]; }
     [[nodiscard]] bool isValidMove(BoardPosition position) const;
+
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
+
     static const int size;
 
     // Critical points on a 15x15 board

@@ -11,9 +11,13 @@ int GameManager::makeMove(const BoardPosition position) {
     const int winner = boardManager.makeMove(position);
     if (winner != EMPTY) return winner; // Player wins
     // AI's turn
-    if (boardManager.checkWinner() != EMPTY) return boardManager.checkWinner(); // Just in case
+    return makeAIMove();
+}
+
+int GameManager::makeAIMove() {
+    // AI's turn
     // Get AI move
-    BoardPosition aiMove;
+    BoardPosition aiMove{};
     do {
         aiMove = GomokuAI::getBestMove(boardManager);
     } while (!boardManager.isValidMove(aiMove));
