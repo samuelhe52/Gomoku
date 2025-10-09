@@ -5,12 +5,12 @@
 #include "GomokuAI.h"
 
 BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) {
-    std::srand(std::time(NULL));
+    srand(time(nullptr));
     // Placeholder: choose random available cell
     int randomRow, randomCol;
     do {
-        randomRow = std::rand() % BoardManager::size;
-        randomCol = std::rand() % BoardManager::size;
+        randomRow = rand() % BoardManager::size;
+        randomCol = rand() % BoardManager::size;
     } while (!boardManager.isValidMove({randomRow, randomCol}));
     return {randomRow, randomCol};
 }

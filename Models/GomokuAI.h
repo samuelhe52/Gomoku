@@ -7,6 +7,8 @@
 
 #include "BoardManager.h"
 #include <vector>
+#include <cstdlib>
+#include <ctime>
 
 class GomokuAI {
 public:
