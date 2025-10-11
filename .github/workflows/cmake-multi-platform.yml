@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, implement-ai ]
   pull_request:
     branches: [ main ]
 
