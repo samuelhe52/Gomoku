@@ -31,13 +31,13 @@ git clone https://github.com/samuelhe52/Gomoku.git
 cd Gomoku
 
 # Configure and build
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build cmake-build-release --config Release
 ```
 
 ### Running the Game
-- **Windows**: `build/Release/Gomoku.exe`
-- **macOS/Linux**: `build/Gomoku`
+- **Windows**: `cmake-build-release/Release/Gomoku.exe`
+- **macOS/Linux**: `cmake-build-release/Gomoku`
 
 ## Deployment
 

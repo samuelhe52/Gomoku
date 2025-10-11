@@ -6,10 +6,10 @@ This document provides detailed instructions for creating deployable packages of
 
 ### Windows - Bundled with Qt DLLs
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build-release --config Release
 mkdir deploy
-cp build/Release/Gomoku.exe deploy/
+cp cmake-build-release/Release/Gomoku.exe deploy/
 windeployqt deploy/Gomoku.exe --release --no-translations
 ```
 
@@ -17,19 +17,19 @@ The `deploy/` folder now contains a self-contained application with all Qt depen
 
 ### macOS - Bundle Qt Frameworks
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build-release --config Release
 mkdir deploy
-cp build/Gomoku deploy/
+cp cmake-build-release/Gomoku deploy/
 macdeployqt deploy/Gomoku -always-overwrite
 ```
 
 ### Linux - Basic Binary
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build cmake-build-release --config Release
 mkdir deploy
-cp build/Gomoku deploy/
+cp cmake-build-release/Gomoku deploy/
 ```
 
 **Note**: Linux binaries require Qt6 to be installed on the target system.
