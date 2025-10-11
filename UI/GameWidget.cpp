@@ -47,6 +47,7 @@ void GameWidget::setupUI() {
             // AI goes first
             board->makeAIMove();
         }
+        board->setAIColor(playerIsBlack ? WHITE : BLACK);
     });
     
     mainLayout->addWidget(stack, 1); // take all available space

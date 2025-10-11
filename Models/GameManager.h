@@ -16,6 +16,8 @@ public:
     int makeMove(BoardPosition position);
     // Returns the winner after the move, EMPTY if no winner, BLACK if black wins, WHITE if white wins
     int makeAIMove();
+    // Set the AI's color, BLACK(1) or WHITE(2)
+    void setAIColor(int c) { GomokuAI::setColor(c); }
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
     [[nodiscard]] int checkWinner() const { return boardManager.checkWinner(); }
     [[nodiscard]] int getCell(const int row, const int col) const { return boardManager.getCell(row, col); }

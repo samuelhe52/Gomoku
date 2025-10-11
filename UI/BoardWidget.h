@@ -26,6 +26,7 @@ public:
         game.makeAIMove();
         update();
     }
+    void setAIColor(int c) { game.setAIColor(c); }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
