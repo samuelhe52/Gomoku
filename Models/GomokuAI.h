@@ -9,11 +9,12 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
+#include <limits>
 
 class GomokuAI {
 public:
-    static BoardPosition getBestMove(const BoardManager& boardManager);
-    static BoardPosition foolishMove(const BoardManager& boardManager);
+    static BoardPosition getBestMove(BoardManager& boardManager);
     static BoardPosition randomMove(const BoardManager& boardManager);
 
     static void setColor(int c) { color = c; } // BLACK(1) or WHITE(2)
@@ -23,29 +24,39 @@ private:
     [[nodiscard]] static int getColor() { return color; }
     [[nodiscard]] static int getOpponentColor() { return (color == BLACK) ? WHITE : BLACK; }
 
-    // Check if opponent has three in a row 
-    [[nodiscard]] static std::vector<BoardPosition> blockOpponentThreeInRow(
-        const BoardManager& boardManager
-    ) {
-        const auto results =  blockingPositions(boardManager, 3);
-        for (const auto& res : results) {
-            if (res.player == getOpponentColor() && !res.positions.empty()) {
-                return res.positions;
-            }
-        }
-        return {};
+    // TODO: 
+    // checked 1. hasNInRow(enable checking only for open) 
+    // checked 2. possibleBestMoves(board, radius) -> get moves surrounding existing non-empty cells
+    // checked 3. evaluate(board, player) -> heuristic evaluation, returns a score
+    // checked? 4. minimax() -> core algorithm for determining a best move
+    // 5. alpha-beta pruning
+
+    // Check if some player has N in a row. If onlyOpen is true, only count open N in a row.
+    [[nodiscard]] static int nInRowCount(
+        const BoardManager &boardManager,
+        int player,
+        int n,
+        bool onlyOpen);
+
+    // Check if some player has open N in a row. Returns a pair of
+    [[nodiscard]] static int openNInRowCount(const BoardManager &boardManager,
+                                             int player,
+                                             int n) {
+        return nInRowCount(boardManager, player, n, true);
     }
 
-    struct BlockingPositions {
-        std::vector<BoardPosition> positions; // Available blocking positions
-        int player; // The player who has N in a row
-    };
+    [[nodiscard]] static int fourInRowCount(const BoardManager& boardManager, int player) {
+        return nInRowCount(boardManager, player, 4, false);
+    }
 
-    // Check if some player has N in a row and return a set of available blocking positions
-    [[nodiscard]] static std::vector<BlockingPositions> blockingPositions(
-        const BoardManager& boardManager,
-        int n // Number of in a row to check for
-    );
+    // Get possible best moves within a certain radius of existing pieces
+    [[nodiscard]] static std::vector<BoardPosition> possibleBestMoves(const BoardManager& boardManager, int radius);
+
+    // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
+    [[nodiscard]] static int evaluate(const BoardManager& boardManager, int player);
+
+    // Minimax algorithm to determine the best move. Returns a pair of (score, best move)
+    [[nodiscard]] static std::pair<int, BoardPosition> minimax(BoardManager& boardManager, int depth, int maximizingPlayer);
 };
 
 
