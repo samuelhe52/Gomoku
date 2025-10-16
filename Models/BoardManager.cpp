@@ -21,8 +21,7 @@ void BoardManager::resetGame() {
 
 // Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
 int BoardManager::makeMove(const BoardPosition position) {
-    if (position.row < 0 || position.row >= size || position.col < 0 || position.col >= size) return EMPTY;
-    if (board[position.row][position.col] != EMPTY) return EMPTY; // Cell already occupied
+    if (!isValidMove(position)) return EMPTY; // Invalid move
 
     board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
     _blackTurn = !_blackTurn; // Switch turn
