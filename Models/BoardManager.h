@@ -22,6 +22,8 @@ public:
 
     void resetGame();
     int makeMove(BoardPosition position);
+    void undoMove(BoardPosition position);
+
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
     [[nodiscard]] int checkWinner() const;
 

@@ -29,6 +29,14 @@ int BoardManager::makeMove(const BoardPosition position) {
     return checkWinner();
 }
 
+void BoardManager::undoMove(const BoardPosition position) {
+    if (position.row < 0 || position.row >= size || position.col < 0 || position.col >= size) return;
+    if (board[position.row][position.col] == EMPTY) return; // Cell already empty
+
+    board[position.row][position.col] = EMPTY;
+    _blackTurn = !_blackTurn; // Switch turn back
+}
+
 int BoardManager::checkWinner() const {
     const int directions[4][2] = {
         {0, 1},  // Horizontal
