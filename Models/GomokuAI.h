@@ -12,6 +12,9 @@
 #include <iostream>
 #include <limits>
 
+#define MAX_DEPTH 3
+#define MAX_SEARCH_RADIUS 2
+
 class GomokuAI {
 public:
     static BoardPosition getBestMove(BoardManager& boardManager);

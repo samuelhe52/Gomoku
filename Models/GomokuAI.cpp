@@ -12,7 +12,7 @@ BoardPosition GomokuAI::getBestMove(BoardManager &boardManager) {
     if (boardManager.isBoardEmpty()) {
         return {BoardManager::size / 2, BoardManager::size / 2}; // Start in the center
     }
-    return minimax(boardManager, 3, getColor()).second;
+    return minimax(boardManager, MAX_DEPTH, getColor()).second;
 }
 
 BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
@@ -125,22 +125,30 @@ int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
     const int opponent = player == BLACK ? WHITE : BLACK;
 
     // Weights for 0 to 5 in a row
-    const int weights[6] = {0, 1, 10, 100, 1000, 10000000};
+    const int weights[6] = {0, 1, 3, 100, 1000, 10000};
 
     int playerScore = 0;
 
     std::vector visited(BoardManager::size, std::vector<bool>(BoardManager::size, false));
 
+    // Handle 5/4 in a row first
+    int winner = boardManager.checkWinner();
     int playerFour = fourInRowCount(boardManager, player);
     int opponentFour = fourInRowCount(boardManager, opponent);
-    if (playerFour > 0) {
-        return weights[5] * 100; // Immediate win
-    }
-    if (opponentFour > 0) {
-        return -weights[5] * 10; // Immediate threat
+
+    // This strategy prioritizes not being immediately defeated, 
+    // and does not focus on maximizing its own immediate wins
+    if (winner == player) {
+        playerScore += weights[5] * 80; // Immediate win
+    } else if (winner == opponent) {
+        playerScore -= weights[5] * 100; // Immediate threat
     }
 
-    for (int n = 5; n >= 2; --n) {
+    playerScore += playerFour + weights[4] * 80; // Immediate win
+    playerScore -= opponentFour + weights[4] * 100; // Immediate threat
+
+    // Handle 3 and 2 in a row
+    for (int n = 3; n >= 2; --n) {
         int playerOpen = openNInRowCount(boardManager, player, n);
         int opponentOpen = openNInRowCount(boardManager, opponent, n);
         playerScore += weights[n] * (playerOpen * 10);
@@ -151,18 +159,18 @@ int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
     }
 
     // If there is no > 2 in a row, prioritize center control
-    if (playerScore == 0) {
-        const int center = BoardManager::size / 2;
-        for (int i = 0; i < BoardManager::size; ++i) {
-            for (int j = 0; j < BoardManager::size; ++j) {
-                if (boardManager.getCell(i, j) == player) {
-                    playerScore += (BoardManager::size - (abs(center - i) + abs(center - j)));
-                } else if (boardManager.getCell(i, j) == opponent) {
-                    playerScore -= (BoardManager::size - (abs(center - i) + abs(center - j)));
-                }
-            }
-        }
-    }
+    // if (playerScore == 0) {
+    //     const int center = BoardManager::size / 2;
+    //     for (int i = 0; i < BoardManager::size; ++i) {
+    //         for (int j = 0; j < BoardManager::size; ++j) {
+    //             if (boardManager.getCell(i, j) == player) {
+    //                 playerScore += (BoardManager::size - (abs(center - i) + abs(center - j)));
+    //             } else if (boardManager.getCell(i, j) == opponent) {
+    //                 playerScore -= (BoardManager::size - (abs(center - i) + abs(center - j)));
+    //             }
+    //         }
+    //     }
+    // }
 
     return playerScore;
 }
@@ -171,13 +179,7 @@ std::pair<int, BoardPosition> GomokuAI::minimax(
     BoardManager& boardManager,
     int depth,
     int maximizingPlayer) {
-        int winner = boardManager.checkWinner();
         if (depth == 0) {
-            if (winner == maximizingPlayer) {
-                return {10000000, {}};
-            } else if (winner == (maximizingPlayer == BLACK ? WHITE : BLACK)) {
-                return {-10000000, {}};
-            }
             return {evaluate(boardManager, maximizingPlayer), {}};
         }
 
@@ -185,7 +187,7 @@ std::pair<int, BoardPosition> GomokuAI::minimax(
         int best_score = std::numeric_limits<int>::min();
         int opponent = (maximizingPlayer == BLACK) ? WHITE : BLACK;
 
-        for (auto pos : possibleBestMoves(boardManager, 1)) {
+        for (auto pos : possibleBestMoves(boardManager, MAX_SEARCH_RADIUS)) {
             boardManager.makeMove(pos);
             auto [score, _] = minimax(boardManager, depth - 1, opponent);
             score *= -1; // Invert score for opponent to get the correct score for maximizingPlayer
