@@ -34,6 +34,9 @@ public:
 
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
+    [[nodiscard]] std::vector<BoardPosition> getLastTwoMoves() const {
+        return lastTwoMoves;
+    }
 
     static const int size;
 
@@ -43,6 +46,8 @@ public:
 private:
     std::vector<std::vector<int>> board;
     bool _blackTurn = true;
+    // Keep track of last two moves for undo and win checking
+    std::vector<BoardPosition> lastTwoMoves;
 };
 
 #endif //GOMOKU_BOARDMANAGER_H
