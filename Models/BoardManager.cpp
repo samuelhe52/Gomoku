@@ -25,21 +25,19 @@ int BoardManager::makeMove(const BoardPosition position) {
 
     board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
     _blackTurn = !_blackTurn; // Switch turn
-    if (lastTwoMoves.size() == 2) {
-        lastTwoMoves.erase(lastTwoMoves.begin());
-    }
-    lastTwoMoves.push_back(position);
+    movesHistory.push_back(position);
     return checkWinner();
 }
 
 void BoardManager::undoMove(const BoardPosition position) {
     if (position.row < 0 || position.row >= size || position.col < 0 || position.col >= size) return;
     if (board[position.row][position.col] == EMPTY) return; // Cell already empty
-
-    board[position.row][position.col] = EMPTY;
-    if (!lastTwoMoves.empty()) {
-        lastTwoMoves.pop_back();
+    if (movesHistory.empty() || position != movesHistory.back()) {
+        return; // Not the last move
     }
+    
+    board[position.row][position.col] = EMPTY;
+    movesHistory.pop_back(); // Remove the undone move from history
     _blackTurn = !_blackTurn; // Switch turn back
 }
 
@@ -56,7 +54,7 @@ int BoardManager::checkWinner() const {
     };
 
     
-    for (auto move : lastTwoMoves) {
+    for (auto move : movesHistory) {
         for (const auto& dir : directions) {
             auto [row, col] = move;
             const int currentCell = board[row][col];
@@ -110,4 +108,46 @@ bool BoardManager::isBoardEmpty() const {
         }
     }
     return true;
+}
+
+bool BoardManager::wouldWin(BoardPosition position, int player) const {
+    if (!isValidMove(position)) return false;
+    
+    const int directions[4][2] = {
+        {0, 1},  // Horizontal
+        {1, 0},  // Vertical
+        {1, 1},  // Diagonal
+        {1, -1}  // Diagonal
+    };
+
+    auto isInvalid = [&](int r, int c) {
+        return r < 0 || r >= size || c < 0 || c >= size || 
+               (board[r][c] != player && !(r == position.row && c == position.col));
+    };
+
+    for (const auto& dir : directions) {
+        int count = 1; // Count the position itself
+
+        // Check in the positive direction
+        for (int step = 1; step < 5; step++) {
+            int newRow = position.row + dir[0] * step;
+            int newCol = position.col + dir[1] * step;
+            if (isInvalid(newRow, newCol)) break;
+            count++;
+        }
+
+        // Check in the negative direction
+        for (int step = 1; step < 5; step++) {
+            int newRow = position.row - dir[0] * step;
+            int newCol = position.col - dir[1] * step;
+            if (isInvalid(newRow, newCol)) break;
+            count++;
+        }
+
+        if (count >= 5) {
+            return true;
+        }
+    }
+
+    return false;
 }

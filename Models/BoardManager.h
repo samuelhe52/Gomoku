@@ -48,9 +48,12 @@ public:
 
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
-    [[nodiscard]] std::vector<BoardPosition> getLastTwoMoves() const {
-        return lastTwoMoves;
+    [[nodiscard]] std::vector<BoardPosition> getMovesHistory() const {
+        return movesHistory;
     }
+    
+    // Check if placing a piece at position would win for the given player
+    [[nodiscard]] bool wouldWin(BoardPosition position, int player) const;
 
     static const int size;
 
@@ -60,8 +63,8 @@ public:
 private:
     std::vector<std::vector<int>> board;
     bool _blackTurn = true;
-    // Keep track of last two moves for undo and win checking
-    std::vector<BoardPosition> lastTwoMoves;
+    // Keep track of moves for undo and win checking
+    std::vector<BoardPosition> movesHistory;
 };
 
 #endif //GOMOKU_BOARDMANAGER_H
