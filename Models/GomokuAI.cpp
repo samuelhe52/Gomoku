@@ -12,7 +12,10 @@ BoardPosition GomokuAI::getBestMove(BoardManager &boardManager) {
     if (boardManager.isBoardEmpty()) {
         return {BoardManager::size / 2, BoardManager::size / 2}; // Start in the center
     }
-    return minimax(boardManager, MAX_DEPTH, getColor()).second;
+
+    return minimaxAlphaBeta(boardManager, MAX_DEPTH, true, getColor(),
+                                   std::numeric_limits<int>::min(),
+                                   std::numeric_limits<int>::max()).second;
 }
 
 BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
@@ -122,30 +125,18 @@ std::vector<BoardPosition> GomokuAI::possibleBestMoves(
 }
 
 int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
-    const int opponent = player == BLACK ? WHITE : BLACK;
+    const int opponent = getOpponent(player);
 
     // Weights for 0 to 5 in a row
     const int weights[6] = {0, 1, 3, 100, 1000, 10000};
 
     int playerScore = 0;
 
-    std::vector visited(BoardManager::size, std::vector<bool>(BoardManager::size, false));
-
-    // Handle 5/4 in a row first
-    int winner = boardManager.checkWinner();
-    int playerFour = fourInRowCount(boardManager, player);
-    int opponentFour = fourInRowCount(boardManager, opponent);
-
-    // This strategy prioritizes not being immediately defeated, 
-    // and does not focus on maximizing its own immediate wins
-    if (winner == player) {
-        playerScore += weights[5] * 80; // Immediate win
-    } else if (winner == opponent) {
-        playerScore -= weights[5] * 100; // Immediate threat
-    }
-
-    playerScore += playerFour + weights[4] * 80; // Immediate win
-    playerScore -= opponentFour + weights[4] * 100; // Immediate threat
+    // Evaluate all positions around the last move to see if they would result in a win
+    int playerOpenFours = openNInRowCount(boardManager, player, 4);
+    int opponentOpenFours = openNInRowCount(boardManager, opponent, 4);
+    playerScore += weights[4] * (playerOpenFours * 50);
+    playerScore -= weights[4] * (opponentOpenFours * 50);
 
     // Handle 3 and 2 in a row
     for (int n = 3; n >= 2; --n) {
@@ -175,28 +166,72 @@ int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
     return playerScore;
 }
 
-std::pair<int, BoardPosition> GomokuAI::minimax(
+std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
     BoardManager& boardManager,
     int depth,
-    int maximizingPlayer) {
-        if (depth == 0) {
-            return {evaluate(boardManager, maximizingPlayer), {}};
+    bool isMaximizing,
+    int currentPlayer,
+    int alpha,
+    int beta) {
+        int winner = boardManager.checkWinner();
+        if (depth == 0 || winner != EMPTY) {
+            if (winner == color) {
+                return {std::numeric_limits<int>::max() / 2, {}};
+            } else if (winner == getOpponent(color)) {
+                return {std::numeric_limits<int>::min() / 2, {}};
+            }
+            // Always evaluate from the AI's perspective
+            return {evaluate(boardManager, color), {}};
         }
 
         BoardPosition best_move;
-        int best_score = std::numeric_limits<int>::min();
-        int opponent = (maximizingPlayer == BLACK) ? WHITE : BLACK;
-
-        for (auto pos : possibleBestMoves(boardManager, MAX_SEARCH_RADIUS)) {
-            boardManager.makeMove(pos);
-            auto [score, _] = minimax(boardManager, depth - 1, opponent);
-            score *= -1; // Invert score for opponent to get the correct score for maximizingPlayer
-            boardManager.undoMove(pos);
-            if (score > best_score) {
-                best_score = score;
-                best_move = pos;
+        auto moves = possibleBestMoves(boardManager, MAX_SEARCH_RADIUS);
+        
+        if (isMaximizing) {
+            int max_eval = std::numeric_limits<int>::min();
+            
+            for (auto pos : moves) {
+                boardManager.makeMove(pos);
+                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, getOpponent(currentPlayer), alpha, beta);
+                boardManager.undoMove(pos);
+                
+                if (eval > max_eval) {
+                    max_eval = eval;
+                    best_move = pos;
+                }
+                
+                alpha = std::max(alpha, eval);
+                // beta comes from the parent and records the smallest value found by the parent so far
+                // so if beta <= alpha, no need to explore further, because the parent will not choose this path
+                // (parent is minimizing player)
+                if (beta <= alpha) {
+                    break; // Alpha cutoff
+                }
             }
+            
+            return {max_eval, best_move};
+        } else {
+            int min_eval = std::numeric_limits<int>::max();
+            
+            for (auto pos : moves) {
+                boardManager.makeMove(pos);
+                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, getOpponent(currentPlayer), alpha, beta);
+                boardManager.undoMove(pos);
+                
+                if (eval < min_eval) {
+                    min_eval = eval;
+                    best_move = pos;
+                }
+                
+                beta = std::min(beta, eval);
+                if (beta <= alpha) {
+                    // alpha comes from the parent and records the largest value found by the parent so far
+                    // so if beta <= alpha, no need to explore further, because the parent will not choose this path
+                    // (parent is maximizing player)
+                    break; // Beta cutoff
+                }
+            }
+            
+            return {min_eval, best_move};
         }
-
-        return {best_score, best_move};
 }
