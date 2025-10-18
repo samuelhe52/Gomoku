@@ -8,10 +8,6 @@ build:
 launch:
 	cmake --build cmake-build-release && cmake-build-release/Gomoku
 
-.PHONY: format
-format:
-	clang-format -i Models/*.cpp Models/*.h UI/*.cpp UI/*.h
-	
 .PHONY: clean
 clean:
 	rm -rf cmake-build-release
