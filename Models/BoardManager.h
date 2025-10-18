@@ -51,6 +51,18 @@ public:
     [[nodiscard]] std::vector<BoardPosition> getMovesHistory() const {
         return movesHistory;
     }
+    // Returns the last two moves made if there are at least two moves
+    // else returns the last move or an empty vector
+    [[nodiscard]] std::vector<BoardPosition> getLastTwoMoves() const {
+        std::vector<BoardPosition> lastTwoMoves;
+        if (!movesHistory.empty()) {
+            lastTwoMoves.push_back(movesHistory.back());
+            if (movesHistory.size() >= 2) {
+                lastTwoMoves.push_back(movesHistory[movesHistory.size() - 2]);
+            }
+        }
+        return lastTwoMoves;
+    }
     
     // Check if placing a piece at position would win for the given player
     [[nodiscard]] bool wouldWin(BoardPosition position, int player) const;

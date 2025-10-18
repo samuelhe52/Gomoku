@@ -59,13 +59,7 @@ int BoardManager::checkWinner() const {
         return r < 0 || r >= size || c < 0 || c >= size || board[r][c] != player;
     };
 
-    std::vector<BoardPosition> lastTwoMoves;
-    if (!movesHistory.empty()) {
-        lastTwoMoves.push_back(movesHistory.back());
-        if (movesHistory.size() >= 2) {
-            lastTwoMoves.push_back(movesHistory[movesHistory.size() - 2]);
-        }
-    }
+    auto lastTwoMoves = getLastTwoMoves();
 
     for (auto move : lastTwoMoves) {
         for (const auto& dir : directions) {
