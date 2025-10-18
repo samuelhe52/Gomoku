@@ -59,8 +59,15 @@ int BoardManager::checkWinner() const {
         return r < 0 || r >= size || c < 0 || c >= size || board[r][c] != player;
     };
 
-    
-    for (auto move : movesHistory) {
+    std::vector<BoardPosition> lastTwoMoves;
+    if (!movesHistory.empty()) {
+        lastTwoMoves.push_back(movesHistory.back());
+        if (movesHistory.size() >= 2) {
+            lastTwoMoves.push_back(movesHistory[movesHistory.size() - 2]);
+        }
+    }
+
+    for (auto move : lastTwoMoves) {
         for (const auto& dir : directions) {
             auto [row, col] = move;
             const int currentCell = board[row][col];
@@ -126,11 +133,6 @@ bool BoardManager::wouldWin(BoardPosition position, int player) const {
         {1, -1}  // Diagonal
     };
 
-    auto isInvalid = [&](int r, int c) {
-        return r < 0 || r >= size || c < 0 || c >= size || 
-               (board[r][c] != player && !(r == position.row && c == position.col));
-    };
-
     for (const auto& dir : directions) {
         int count = 1; // Count the position itself
 
@@ -138,7 +140,10 @@ bool BoardManager::wouldWin(BoardPosition position, int player) const {
         for (int step = 1; step < 5; step++) {
             int newRow = position.row + dir[0] * step;
             int newCol = position.col + dir[1] * step;
-            if (isInvalid(newRow, newCol)) break;
+            if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size || 
+                board[newRow][newCol] != player) {
+                break;
+            }
             count++;
         }
 
@@ -146,7 +151,10 @@ bool BoardManager::wouldWin(BoardPosition position, int player) const {
         for (int step = 1; step < 5; step++) {
             int newRow = position.row - dir[0] * step;
             int newCol = position.col - dir[1] * step;
-            if (isInvalid(newRow, newCol)) break;
+            if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size || 
+                board[newRow][newCol] != player) {
+                break;
+            }
             count++;
         }
 
