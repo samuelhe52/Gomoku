@@ -18,9 +18,11 @@ int GameManager::makeAIMove() {
     // AI's turn
     // Get AI move
     BoardPosition aiMove{};
-    do {
-        aiMove = GomokuAI::getBestMove(boardManager);
-    } while (!boardManager.isValidMove(aiMove));
+    aiMove = GomokuAI::getBestMove(boardManager);
+    if (!boardManager.isValidMove(aiMove)) {
+        std::cerr << "AI attempted invalid move at " << aiMove << std::endl;
+        exit(EXIT_FAILURE); // fatal
+    }
     // Programs should be stuck here if AI makes an invalid move (should never happen)
     return boardManager.makeMove(aiMove);
 }

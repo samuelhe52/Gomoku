@@ -21,7 +21,10 @@ void BoardManager::resetGame() {
 
 // Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
 int BoardManager::makeMove(const BoardPosition position) {
-    if (!isValidMove(position)) return EMPTY; // Invalid move
+    if (!isValidMove(position)) { 
+        std::cerr << "Invalid move attempted: " << position << std::endl;
+        return EMPTY; // Invalid move
+    }
 
     board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
     _blackTurn = !_blackTurn; // Switch turn
@@ -33,6 +36,9 @@ void BoardManager::undoMove(const BoardPosition position) {
     if (position.row < 0 || position.row >= size || position.col < 0 || position.col >= size) return;
     if (board[position.row][position.col] == EMPTY) return; // Cell already empty
     if (movesHistory.empty() || position != movesHistory.back()) {
+        std::cerr << "Illegal undoMove" << std::endl;
+        std::cerr << movesHistory.back() << std::endl;
+        std::cerr << position << std::endl;
         return; // Not the last move
     }
     
