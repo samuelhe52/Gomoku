@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 struct BoardPosition {
     int row;
