@@ -88,6 +88,8 @@ std::vector<BoardPosition> GomokuAI::possibleBestMoves(
     const int radius) {
     std::vector<BoardPosition> moves;
 
+    std::vector<BoardPosition> existingPieces{};
+
     for (int i = 0; i < BoardManager::size; ++i) {
         for (int j = 0; j < BoardManager::size; ++j) {
             if (boardManager.getCell(i, j) == EMPTY) {
@@ -104,6 +106,7 @@ std::vector<BoardPosition> GomokuAI::possibleBestMoves(
                             nj >= 0 && 
                             nj < BoardManager::size) {
                             if (boardManager.getCell(ni, nj) != EMPTY) {
+                                existingPieces.push_back({ni, nj});
                                 hasPieceNearby = true;
                                 break;
                             }
@@ -120,6 +123,19 @@ std::vector<BoardPosition> GomokuAI::possibleBestMoves(
             }
         }
     }
+
+    // Order moves by heuristic: prefer center control 
+    // TODO: improve heuristic by preferring existing pieces as well
+    std::sort(moves.begin(), moves.end(), [&](const BoardPosition& a, const BoardPosition& b) {
+        int scoreA = 0;
+        int scoreB = 0;
+
+        int center = BoardManager::size / 2;
+        scoreA -= (abs(center - a.row) + abs(center - a.col));
+        scoreB -= (abs(center - b.row) + abs(center - b.col));
+
+        return scoreA > scoreB; // Higher score first
+    });
     
     return moves;
 }
