@@ -17,12 +17,17 @@ void BoardManager::resetGame() {
         std::fill(row.begin(), row.end(), EMPTY);
     }
     _blackTurn = true;
+    movesHistory.clear();
+    candidateMovesCache.clear();
 }
 
 void BoardManager::_makeMove(BoardPosition position) {
     board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
     _blackTurn = !_blackTurn; // Switch turn
-    movesHistory.push_back(position);
+    
+    MoveRecord record;
+    record.position = position;
+    movesHistory.push_back(record);
 }
 
 int BoardManager::makeMove(const BoardPosition position) {
@@ -32,12 +37,30 @@ int BoardManager::makeMove(const BoardPosition position) {
     }
 
     _makeMove(position);
+    updateCandidatesCache();
     return checkWinner();
 }
 
 void BoardManager::undoMove() {
-    BoardPosition position = movesHistory.back();
+    if (movesHistory.empty()) return;
+    
+    MoveRecord lastRecord = movesHistory.back();
+    BoardPosition position = lastRecord.position;
+    
+    // Reset the board position
     board[position.row][position.col] = EMPTY;
+    
+    // Reverse the cache changes
+    // Remove all candidates that were added for this move
+    for (const auto& candidate : lastRecord.addedCandidates) {
+        candidateMovesCache.erase(candidate);
+    }
+    
+    // If this position was in the cache before the move, add it back
+    if (lastRecord.removedFromCache) {
+        candidateMovesCache.insert(position);
+    }
+    
     movesHistory.pop_back(); // Remove the undone move from history
     _blackTurn = !_blackTurn; // Switch turn back
 }
@@ -57,7 +80,7 @@ int BoardManager::checkWinner() const {
     };
 
     const int player = _blackTurn ? WHITE : BLACK; // Last move was by the opposite player
-    BoardPosition lastMove = movesHistory.back();
+    BoardPosition lastMove = movesHistory.back().position;
 
     for (const auto& dir : directions) {
         auto [row, col] = lastMove;
@@ -154,4 +177,45 @@ bool BoardManager::wouldWin(BoardPosition position, int player) const {
     }
 
     return false;
+}
+
+void BoardManager::updateCandidatesCache() {
+    if (movesHistory.empty()) return;
+    
+    // Get reference to the last move record to update it
+    MoveRecord& lastRecord = movesHistory.back();
+    BoardPosition lastMove = lastRecord.position;
+    
+    // Check if this position was already in the cache
+    lastRecord.removedFromCache = candidateMovesCache.count(lastMove) > 0;
+    
+    // Remove the move position from cache (it's now occupied)
+    candidateMovesCache.erase(lastMove);
+    
+    // Add new candidates around the move and track them
+    for (const auto& pos : candidatesAround(lastMove, candidateRadius)) {
+        // Only track truly new candidates (not already in cache)
+        if (candidateMovesCache.count(pos) == 0) {
+            lastRecord.addedCandidates.insert(pos);
+            candidateMovesCache.insert(pos);
+        }
+    }
+}
+
+std::vector<BoardPosition> BoardManager::candidatesAround(
+    const BoardPosition position,
+    const int radius) const {
+    std::vector<BoardPosition> candidates;
+    for (int dr = -radius; dr <= radius; ++dr) {
+        for (int dc = -radius; dc <= radius; ++dc) {
+            if (dr == 0 && dc == 0) continue; // Skip the center position
+            int newRow = position.row + dr;
+            int newCol = position.col + dc;
+            BoardPosition newPos{newRow, newCol};
+            if (isValidMove(newPos)) {
+                candidates.push_back(newPos);
+            }
+        }
+    }
+    return candidates;
 }

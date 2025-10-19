@@ -6,14 +6,13 @@
 #define GOMOKU_GOMOKUAI_H
 
 #include "BoardManager.h"
+#include "Constants.h"
 #include <vector>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <limits>
 
-#define MAX_DEPTH 4
-#define MAX_SEARCH_RADIUS 2
 
 class GomokuAI {
 public:
@@ -53,7 +52,7 @@ private:
     }
 
     // Get possible candidate moves within a certain radius of existing pieces
-    [[nodiscard]] static std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager, int radius);
+    [[nodiscard]] static std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager);
 
     // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
     [[nodiscard]] static int evaluate(const BoardManager& boardManager, int player);

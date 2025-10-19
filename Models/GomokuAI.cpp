@@ -83,44 +83,12 @@ int GomokuAI::nInRowCount(
     return openCount;
 }
 
-std::vector<BoardPosition> GomokuAI::candidateMoves(
-    const BoardManager& boardManager,
-    const int radius) {
+std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
     std::vector<BoardPosition> moves;
-
-    for (int i = 0; i < BoardManager::size; ++i) {
-        for (int j = 0; j < BoardManager::size; ++j) {
-            if (boardManager.getCell(i, j) == EMPTY) {
-                bool hasPieceNearby = false;
-                for (int dx = -radius; dx <= radius; ++dx) {
-                    for (int dy = -radius; dy <= radius; ++dy) {
-                        if (dx == 0 && dy == 0) continue;
-
-                        int ni = i + dx;
-                        int nj = j + dy;
-
-                        if (ni >= 0 &&
-                            ni < BoardManager::size && 
-                            nj >= 0 && 
-                            nj < BoardManager::size) {
-                            if (boardManager.getCell(ni, nj) != EMPTY) {
-                                hasPieceNearby = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (hasPieceNearby) {
-                        break;
-                    }
-                }
-
-                if (hasPieceNearby) {
-                    moves.push_back({i, j});
-                }
-            }
-        }
+    for (const auto& pos : boardManager.getCandidateMoves()) {
+        moves.push_back(pos);
     }
-
+        
     // Order moves by heuristic: prefer center control 
     // TODO: improve heuristic by preferring existing pieces as well
     std::sort(moves.begin(), moves.end(), [&](const BoardPosition& a, const BoardPosition& b) {
@@ -198,7 +166,7 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
         }
 
         BoardPosition best_move;
-        auto moves = candidateMoves(boardManager, MAX_SEARCH_RADIUS);
+        auto moves = candidateMoves(boardManager);
         
         if (isMaximizing) {
             int max_eval = std::numeric_limits<int>::min();

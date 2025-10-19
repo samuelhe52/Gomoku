@@ -5,13 +5,11 @@
 #ifndef GOMOKU_BOARDMANAGER_H
 #define GOMOKU_BOARDMANAGER_H
 
-#define EMPTY 0
-#define BLACK 1
-#define WHITE 2
-
+#include "Constants.h"
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <set>
 
 struct BoardPosition {
     int row;
@@ -25,10 +23,21 @@ struct BoardPosition {
         return !(*this == other);
     }
 
+    bool operator<(const BoardPosition& other) const {
+        if (row != other.row) return row < other.row;
+        return col < other.col;
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const BoardPosition& pos) {
         os << "(" << pos.row << ", " << pos.col << ")";
         return os;
     }
+};
+
+struct MoveRecord {
+    BoardPosition position;
+    std::set<BoardPosition> addedCandidates;
+    bool removedFromCache;
 };
 
 class BoardManager {
@@ -54,6 +63,10 @@ public:
     // Check if placing a piece at position would win for the given player
     [[nodiscard]] bool wouldWin(BoardPosition position, int player) const;
 
+    [[nodiscard]] std::set<BoardPosition> getCandidateMoves() const {
+        return candidateMovesCache;
+    }
+
     static const int size;
 
     // Critical points on a 15x15 board
@@ -62,8 +75,12 @@ public:
 private:
     std::vector<std::vector<int>> board;
     bool _blackTurn = true;
-    // Keep track of moves for undo and win checking
-    std::vector<BoardPosition> movesHistory;
+    // Keep track of moves for undo and win checking with cache information
+    std::vector<MoveRecord> movesHistory;
+    std::set<BoardPosition> candidateMovesCache;
+    void updateCandidatesCache();
+    std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;
+    const int candidateRadius = MAX_CANDIDATE_RADIUS;
 
     // Performs the combined action of making a move, adding to history, and switching turn
     void _makeMove(BoardPosition position);
