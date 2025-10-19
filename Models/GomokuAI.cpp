@@ -84,9 +84,21 @@ int GomokuAI::nInRowCount(
 }
 
 std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
+    std::vector<BoardPosition> prioritizedMoves;
     std::vector<BoardPosition> moves;
+
     for (const auto& pos : boardManager.getCandidateMoves()) {
-        moves.push_back(pos);
+        if (boardManager.wouldWin(pos, color) ||
+            boardManager.wouldWin(pos, getOpponent(color))) {
+            // Prioritize immediate winning/blocking moves
+            prioritizedMoves.push_back(pos);
+        } else {
+            moves.push_back(pos);
+        }
+    }
+
+    if (!prioritizedMoves.empty()) {
+        return prioritizedMoves;
     }
         
     // Order moves by heuristic: prefer center control 
