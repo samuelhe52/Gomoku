@@ -39,7 +39,7 @@ public:
 
     // Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
     int makeMove(BoardPosition position);
-    void undoMove(BoardPosition position);
+    void undoMove();
 
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
     [[nodiscard]] int checkWinner() const;
@@ -67,9 +67,6 @@ private:
 
     // Performs the combined action of making a move, adding to history, and switching turn
     void _makeMove(BoardPosition position);
-
-    // Performs the combined action of undoing a move, removing from history, and switching turn back
-    void _undoMove(BoardPosition position);
 };
 
 #endif //GOMOKU_BOARDMANAGER_H

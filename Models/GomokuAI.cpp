@@ -83,12 +83,10 @@ int GomokuAI::nInRowCount(
     return openCount;
 }
 
-std::vector<BoardPosition> GomokuAI::possibleBestMoves(
+std::vector<BoardPosition> GomokuAI::candidateMoves(
     const BoardManager& boardManager,
     const int radius) {
     std::vector<BoardPosition> moves;
-
-    std::vector<BoardPosition> existingPieces{};
 
     for (int i = 0; i < BoardManager::size; ++i) {
         for (int j = 0; j < BoardManager::size; ++j) {
@@ -106,7 +104,6 @@ std::vector<BoardPosition> GomokuAI::possibleBestMoves(
                             nj >= 0 && 
                             nj < BoardManager::size) {
                             if (boardManager.getCell(ni, nj) != EMPTY) {
-                                existingPieces.push_back({ni, nj});
                                 hasPieceNearby = true;
                                 break;
                             }
@@ -201,15 +198,15 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
         }
 
         BoardPosition best_move;
-        auto moves = possibleBestMoves(boardManager, MAX_SEARCH_RADIUS);
+        auto moves = candidateMoves(boardManager, MAX_SEARCH_RADIUS);
         
         if (isMaximizing) {
             int max_eval = std::numeric_limits<int>::min();
-            
-            for (auto pos : moves) {
+
+            for (const auto& pos : moves) {
                 boardManager.makeMove(pos);
                 auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, getOpponent(currentPlayer), alpha, beta);
-                boardManager.undoMove(pos);
+                boardManager.undoMove();
                 
                 if (eval > max_eval) {
                     max_eval = eval;
@@ -228,11 +225,11 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
             return {max_eval, best_move};
         } else {
             int min_eval = std::numeric_limits<int>::max();
-            
-            for (auto pos : moves) {
+
+            for (const auto& pos : moves) {
                 boardManager.makeMove(pos);
                 auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, getOpponent(currentPlayer), alpha, beta);
-                boardManager.undoMove(pos);
+                boardManager.undoMove();
                 
                 if (eval < min_eval) {
                     min_eval = eval;

@@ -52,8 +52,8 @@ private:
         return nInRowCount(boardManager, player, 4, false);
     }
 
-    // Get possible best moves within a certain radius of existing pieces
-    [[nodiscard]] static std::vector<BoardPosition> possibleBestMoves(const BoardManager& boardManager, int radius);
+    // Get possible candidate moves within a certain radius of existing pieces
+    [[nodiscard]] static std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager, int radius);
 
     // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
     [[nodiscard]] static int evaluate(const BoardManager& boardManager, int player);
