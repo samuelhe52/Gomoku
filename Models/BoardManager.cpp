@@ -19,16 +19,25 @@ void BoardManager::resetGame() {
     _blackTurn = true;
 }
 
-// Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
+void BoardManager::_makeMove(BoardPosition position) {
+    board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
+    _blackTurn = !_blackTurn; // Switch turn
+    movesHistory.push_back(position);
+}
+
+void BoardManager::_undoMove(BoardPosition position) {
+    board[position.row][position.col] = EMPTY;
+    movesHistory.pop_back(); // Remove the undone move from history
+    _blackTurn = !_blackTurn; // Switch turn back
+}
+
 int BoardManager::makeMove(const BoardPosition position) {
     if (!isValidMove(position)) { 
         std::cerr << "Invalid move attempted: " << position << std::endl;
         return EMPTY; // Invalid move
     }
 
-    board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
-    _blackTurn = !_blackTurn; // Switch turn
-    movesHistory.push_back(position);
+    _makeMove(position);
     return checkWinner();
 }
 
@@ -41,13 +50,13 @@ void BoardManager::undoMove(const BoardPosition position) {
         std::cerr << position << std::endl;
         return; // Not the last move
     }
-    
-    board[position.row][position.col] = EMPTY;
-    movesHistory.pop_back(); // Remove the undone move from history
-    _blackTurn = !_blackTurn; // Switch turn back
+
+    _undoMove(position);
 }
 
 int BoardManager::checkWinner() const {
+    if (movesHistory.empty()) return EMPTY;
+
     const int directions[4][2] = {
         {0, 1},  // Horizontal
         {1, 0},  // Vertical
@@ -59,34 +68,33 @@ int BoardManager::checkWinner() const {
         return r < 0 || r >= size || c < 0 || c >= size || board[r][c] != player;
     };
 
-    auto lastTwoMoves = getLastTwoMoves();
+    const int player = _blackTurn ? WHITE : BLACK; // Last move was by the opposite player
+    BoardPosition lastMove = movesHistory.back();
 
-    for (auto move : lastTwoMoves) {
-        for (const auto& dir : directions) {
-            auto [row, col] = move;
-            const int currentCell = board[row][col];
-            if (currentCell == EMPTY) continue;
-            int count = 1;
+    for (const auto& dir : directions) {
+        auto [row, col] = lastMove;
+        const int currentCell = board[row][col];
+        if (currentCell == EMPTY) continue;
+        int count = 1;
 
-            // Check in the positive direction
-            for (int step = 1; step < 5; step++) {
-                int newRow = row + dir[0] * step;
-                int newCol = col + dir[1] * step;
-                if (isInvalid(newRow, newCol, currentCell)) break;
-                count++;
-            }
+        // Check in the positive direction
+        for (int step = 1; step < 5; step++) {
+            int newRow = row + dir[0] * step;
+            int newCol = col + dir[1] * step;
+            if (isInvalid(newRow, newCol, currentCell)) break;
+            count++;
+        }
 
-            // Check in the negative direction
-            for (int step = 1; step < 5; step++) {
-                int newRow = row - dir[0] * step;
-                int newCol = col - dir[1] * step;
-                if (isInvalid(newRow, newCol, currentCell)) break;
-                count++;
-            }
+        // Check in the negative direction
+        for (int step = 1; step < 5; step++) {
+            int newRow = row - dir[0] * step;
+            int newCol = col - dir[1] * step;
+            if (isInvalid(newRow, newCol, currentCell)) break;
+            count++;
+        }
 
-            if (count >= 5) {
-                return currentCell;
-            }
+        if (count >= 5) {
+            return currentCell;
         }
     }
 

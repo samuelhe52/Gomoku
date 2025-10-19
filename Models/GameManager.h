@@ -22,7 +22,6 @@ public:
     [[nodiscard]] int checkWinner() const { return boardManager.checkWinner(); }
     [[nodiscard]] int getCell(const int row, const int col) const { return boardManager.getCell(row, col); }
     [[nodiscard]] int getCell(const BoardPosition position) const { return boardManager.getCell(position); }
-    [[nodiscard]] bool blackTurn() const { return boardManager.blackTurn(); }
     [[nodiscard]] bool isBoardFull() const { return boardManager.isBoardFull(); }
     [[nodiscard]] bool isBoardEmpty() const { return boardManager.isBoardEmpty(); }
 

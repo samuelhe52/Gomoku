@@ -36,34 +36,20 @@ public:
     BoardManager();
 
     void resetGame();
+
+    // Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
     int makeMove(BoardPosition position);
     void undoMove(BoardPosition position);
 
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
     [[nodiscard]] int checkWinner() const;
 
-    [[nodiscard]] bool blackTurn() const { return _blackTurn; }
     [[nodiscard]] int getCell(const int row, const int col) const { return board[row][col]; }
     [[nodiscard]] int getCell(const BoardPosition position) const { return board[position.row][position.col]; }
     [[nodiscard]] bool isValidMove(BoardPosition position) const;
 
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
-    [[nodiscard]] std::vector<BoardPosition> getMovesHistory() const {
-        return movesHistory;
-    }
-    // Returns the last two moves made if there are at least two moves
-    // else returns the last move or an empty vector
-    [[nodiscard]] std::vector<BoardPosition> getLastTwoMoves() const {
-        std::vector<BoardPosition> lastTwoMoves;
-        if (!movesHistory.empty()) {
-            lastTwoMoves.push_back(movesHistory.back());
-            if (movesHistory.size() >= 2) {
-                lastTwoMoves.push_back(movesHistory[movesHistory.size() - 2]);
-            }
-        }
-        return lastTwoMoves;
-    }
     
     // Check if placing a piece at position would win for the given player
     [[nodiscard]] bool wouldWin(BoardPosition position, int player) const;
@@ -78,6 +64,12 @@ private:
     bool _blackTurn = true;
     // Keep track of moves for undo and win checking
     std::vector<BoardPosition> movesHistory;
+
+    // Performs the combined action of making a move, adding to history, and switching turn
+    void _makeMove(BoardPosition position);
+
+    // Performs the combined action of undoing a move, removing from history, and switching turn back
+    void _undoMove(BoardPosition position);
 };
 
 #endif //GOMOKU_BOARDMANAGER_H
