@@ -134,7 +134,7 @@ std::vector<BoardPosition> GomokuAI::possibleBestMoves(
         scoreA -= (abs(center - a.row) + abs(center - a.col));
         scoreB -= (abs(center - b.row) + abs(center - b.col));
 
-        return scoreA > scoreB; // Higher score first
+        return scoreA > scoreB; 
     });
     
     return moves;

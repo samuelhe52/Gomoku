@@ -23,6 +23,6 @@ int GameManager::makeAIMove() {
         std::cerr << "AI attempted invalid move at " << aiMove << std::endl;
         exit(EXIT_FAILURE); // fatal
     }
-    // Programs should be stuck here if AI makes an invalid move (should never happen)
+    // Programs should force exit here if AI makes an invalid move (should never happen)
     return boardManager.makeMove(aiMove);
 }
