@@ -23,6 +23,12 @@ void GameWidget::setupUI() {
     
     // Create board widget
     board = new BoardWidget(stack);
+    board->setGameManager(&gameManager);
+    board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
+    connect(board, &BoardWidget::cellSelected, this, [this](int row, int col) {
+        BoardPosition position{row, col};
+        handleHumanMove(position);
+    });
     
     // Create an overlay widget that contains the color chooser
     auto *overlayWidget = new QWidget(stack);
@@ -42,12 +48,8 @@ void GameWidget::setupUI() {
     
     // Connect color chooser signal
     connect(colorChooser, &ColorChooserWidget::colorChosen, this, [this, stack](bool playerIsBlack) {
-        stack->setCurrentIndex(0); // Switch to board
-        if (!playerIsBlack) {
-            // AI goes first
-            board->makeAIMove();
-        }
-        board->setAIColor(playerIsBlack ? WHITE : BLACK);
+        stack->setCurrentIndex(0);
+        startGame(playerIsBlack);
     });
     
     mainLayout->addWidget(stack, 1); // take all available space
@@ -64,8 +66,41 @@ void GameWidget::setupUI() {
     buttonLayout->addStretch();
     
     connect(resetButton, &QPushButton::clicked, this, [this, stack]() {
-        board->resetGame();
-        stack->setCurrentIndex(1); // Show overlay again
+        gameManager.resetGame();
+        board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
+        stack->setCurrentIndex(1);
     });
     mainLayout->addLayout(buttonLayout);
+}
+
+void GameWidget::handleHumanMove(const BoardPosition position) {
+    MoveResult result = gameManager.playHumanMove(position);
+    if (!result.moveApplied) {
+        return;
+    }
+
+    board->updateGameState(result.winner, result.boardIsFull);
+
+    if (result.winner == EMPTY && !result.boardIsFull) {
+        requestAiMove();
+    }
+}
+
+void GameWidget::startGame(const bool playerIsBlack) {
+    const char humanColor = playerIsBlack ? BLACK : WHITE;
+    gameManager.startNewGame(humanColor);
+    board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
+
+    if (gameManager.isAITurn()) {
+        requestAiMove();
+    }
+}
+
+void GameWidget::requestAiMove() {
+    if (!gameManager.isAITurn() || gameManager.winner() != EMPTY) return;
+
+    MoveResult result = gameManager.playAIMove();
+    if (!result.moveApplied) return;
+
+    board->updateGameState(result.winner, result.boardIsFull);
 }

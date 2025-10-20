@@ -4,25 +4,77 @@
 
 #include "GameManager.h"
 
-GameManager::GameManager() = default;
+#include <cstdlib>
+#include <iostream>
 
-char GameManager::makeMove(const BoardPosition position) {
-    if (!boardManager.isValidMove(position)) return EMPTY; // Invalid move
-    const char winner = boardManager.makeMove(position);
-    if (winner != EMPTY) return winner; // Player wins
-    // AI's turn
-    return makeAIMove();
+GameManager::GameManager() {
+    resetGame();
 }
 
-char GameManager::makeAIMove() {
-    // AI's turn
-    // Get AI move
-    BoardPosition aiMove{};
-    aiMove = GomokuAI::getBestMove(boardManager);
+void GameManager::startNewGame(const char humanColor) {
+    _humanColor = humanColor;
+    _aiColor = (humanColor == BLACK) ? WHITE : BLACK;
+    GomokuAI::setColor(_aiColor);
+    resetGame();
+}
+
+void GameManager::resetGame() {
+    boardManager.resetGame();
+    _currentTurn = BLACK;
+    _winner = EMPTY;
+}
+
+MoveResult GameManager::playHumanMove(const BoardPosition position) {
+    if (!isHumansTurn()) {
+        return {false, _winner, boardManager.isBoardFull(), {-1, -1}};
+    }
+
+    if (!canPlayAt(position)) {
+        return {false, _winner, boardManager.isBoardFull(), {-1, -1}};
+    }
+
+    return applyMove(position);
+}
+
+MoveResult GameManager::playAIMove() {
+    if (!isAITurn()) {
+        return {false, _winner, boardManager.isBoardFull(), {-1, -1}};
+    }
+
+    if (_winner != EMPTY) {
+        return {false, _winner, boardManager.isBoardFull(), {-1, -1}};
+    }
+
+    BoardPosition aiMove = GomokuAI::getBestMove(boardManager);
     if (!boardManager.isValidMove(aiMove)) {
         std::cerr << "AI attempted invalid move at " << aiMove << std::endl;
-        exit(EXIT_FAILURE); // fatal
+        exit(EXIT_FAILURE);
     }
-    // Programs should force exit here if AI makes an invalid move (should never happen)
-    return boardManager.makeMove(aiMove);
+
+    return applyMove(aiMove);
+}
+
+MoveResult GameManager::applyMove(const BoardPosition position) {
+    MoveResult result;
+    result.position = position;
+
+    const char moveWinner = boardManager.makeMove(position);
+    result.moveApplied = true;
+    _currentTurn = (_currentTurn == BLACK) ? WHITE : BLACK;
+
+    if (moveWinner != EMPTY) {
+        _winner = moveWinner;
+    }
+
+    result.winner = _winner;
+    result.boardIsFull = boardManager.isBoardFull();
+    return result;
+}
+
+bool GameManager::canPlayAt(const BoardPosition position) const {
+    if (_winner != EMPTY) {
+        return false;
+    }
+
+    return boardManager.isValidMove(position);
 }

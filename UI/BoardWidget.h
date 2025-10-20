@@ -17,24 +17,23 @@ class BoardWidget : public QWidget {
 
 public:
     explicit BoardWidget(QWidget *parent = nullptr);
-    void resetGame() { 
-        game.resetGame();
-        winner = EMPTY;
-        update(); 
-    }
-    void makeAIMove() {
-        game.makeAIMove();
+    void setGameManager(GameManager *manager) { game = manager; }
+    void updateGameState(char newWinner, bool boardFull) {
+        winner = newWinner;
+        boardIsFull = boardFull;
         update();
     }
-    void setAIColor(char c) { game.setAIColor(c); }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
 
     void mousePressEvent(QMouseEvent *event) override;
 
+signals:
+    void cellSelected(int row, int col);
+
 private:
-    GameManager game;
+    GameManager *game = nullptr;
 
     [[nodiscard]] int boardCellSize() const;
 

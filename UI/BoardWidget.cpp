@@ -30,7 +30,10 @@ void BoardWidget::paintEvent(QPaintEvent *) {
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
-    if (winner != EMPTY) return; // Ignore clicks if game is over or not started
+    if (!game || winner != EMPTY || boardIsFull || !game->isHumansTurn()) {
+        event->ignore();
+        return;
+    }
     if (event->button() != Qt::LeftButton) {
         // Propagate the event if it's not a left click
         QWidget::mousePressEvent(event);
@@ -50,10 +53,14 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
-    winner = game.makeMove({row, col});
-    boardIsFull = game.isBoardFull();
-    update(); // Trigger repaint
-    event->accept(); // Stop propagation of mouse click event
+    BoardPosition position{row, col};
+    if (!game->canPlayAt(position)) {
+        event->ignore();
+        return;
+    }
+
+    emit cellSelected(position.row, position.col);
+    event->accept();
 }
 
 /* Drawing Actions */
@@ -103,13 +110,15 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) const {
 }
 
 void BoardWidget::drawStones(QPainter &painter) const {
+    if (!game) return;
+
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            if (game.getCell(row, col) == EMPTY) continue;
+            if (game->getCell(row, col) == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
             const double radius = static_cast<double>(cellSize) / 3 + 1.5;
-            drawStone(painter, QPointF(centerX, centerY), radius, game.getCell(row, col) == BLACK);
+            drawStone(painter, QPointF(centerX, centerY), radius, game->getCell(row, col) == BLACK);
         }
     }
 }

@@ -28,9 +28,12 @@ private:
     QPushButton *resetButton;
     QBoxLayout *mainLayout;
     QBoxLayout *buttonLayout;
+    GameManager gameManager;
     
     void setupUI();
-    void onColorChosen(bool playerIsBlack);
+    void handleHumanMove(BoardPosition position);
+    void startGame(bool playerIsBlack);
+    void requestAiMove();
     
     const QString button_style_sheet = "QPushButton {"
             "  background-color: #6B4423;"
