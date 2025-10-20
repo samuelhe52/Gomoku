@@ -81,8 +81,9 @@ void GameWidget::handleHumanMove(const BoardPosition position) {
 
     board->updateGameState(result.winner, result.boardIsFull);
 
+    // Immediately request AI move if game is still ongoing
     if (result.winner == EMPTY && !result.boardIsFull) {
-        requestAiMove();
+        requestAIMove();
     }
 }
 
@@ -92,11 +93,11 @@ void GameWidget::startGame(const bool playerIsBlack) {
     board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
 
     if (gameManager.isAITurn()) {
-        requestAiMove();
+        requestAIMove();
     }
 }
 
-void GameWidget::requestAiMove() {
+void GameWidget::requestAIMove() {
     if (!gameManager.isAITurn() || gameManager.winner() != EMPTY) return;
 
     MoveResult result = gameManager.playAIMove();

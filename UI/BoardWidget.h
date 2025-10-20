@@ -17,7 +17,9 @@ class BoardWidget : public QWidget {
 
 public:
     explicit BoardWidget(QWidget *parent = nullptr);
+    // Attach the shared GameManager instance driving the board state.
     void setGameManager(GameManager *manager) { game = manager; }
+    // Sync winner/full-board flags and trigger repaint after a model update.
     void updateGameState(char newWinner, bool boardFull) {
         winner = newWinner;
         boardIsFull = boardFull;
@@ -30,6 +32,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 signals:
+    // Emitted when the player clicks a valid intersection; UI owns move logic.
     void cellSelected(int row, int col);
 
 private:

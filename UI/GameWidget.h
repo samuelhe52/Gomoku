@@ -33,7 +33,7 @@ private:
     void setupUI();
     void handleHumanMove(BoardPosition position);
     void startGame(bool playerIsBlack);
-    void requestAiMove();
+    void requestAIMove();
     
     const QString button_style_sheet = "QPushButton {"
             "  background-color: #6B4423;"
