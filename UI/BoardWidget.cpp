@@ -60,7 +60,7 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
 
 void BoardWidget::calculateBoardLayout() {
     cellSize = boardCellSize();
-    borderSize = cellSize * (BoardManager::size - 1);
+    borderSize = cellSize * (BOARD_SIZE - 1);
     startX = (width() - borderSize) / 2;
     startY = (height() - borderSize) / 2;
 }
@@ -79,12 +79,12 @@ void BoardWidget::drawGridLines(QPainter &painter) const {
     QPen linePen(lineColor, linesWidth, Qt::SolidLine);
     painter.setPen(linePen);
 
-    for (int i = 0; i < BoardManager::size; ++i) {
+    for (int i = 0; i < BOARD_SIZE; ++i) {
         const int x = startX + i * cellSize;
         // Vertical line
         painter.drawLine(x, startY, x, startY + borderSize);
         // Horizontal line
-        for (int j = 0; j < BoardManager::size; ++j) {
+        for (int j = 0; j < BOARD_SIZE; ++j) {
             const int y = startY + j * cellSize;
             painter.drawLine(startX, y, startX + borderSize, y);
         }
@@ -103,8 +103,8 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) const {
 }
 
 void BoardWidget::drawStones(QPainter &painter) const {
-    for (int row = 0; row < BoardManager::size; ++row) {
-        for (int col = 0; col < BoardManager::size; ++col) {
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
             if (game.getCell(row, col) == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
@@ -179,7 +179,7 @@ int BoardWidget::criticalPointRadius() const {
 }
 
 int BoardWidget::boardCellSize() const {
-    const int verticalCellSize = width() / BoardManager::size;
-    const int horizontalCellSize = height() / BoardManager::size;
+    const int verticalCellSize = width() / BOARD_SIZE;
+    const int horizontalCellSize = height() / BOARD_SIZE;
     return std::min(verticalCellSize, horizontalCellSize);
 }

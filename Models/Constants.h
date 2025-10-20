@@ -5,6 +5,8 @@
 #ifndef GOMOKU_CONSTANTS_H
 #define GOMOKU_CONSTANTS_H
 
+#define BOARD_SIZE 15
+
 #define EMPTY 0
 #define BLACK 1
 #define WHITE 2

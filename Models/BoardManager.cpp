@@ -4,17 +4,15 @@
 
 #include "BoardManager.h"
 
-BoardManager::BoardManager() : board(size, std::vector<int>(size, EMPTY)) {}
+BoardManager::BoardManager() = default;
 
 const std::vector<BoardPosition> BoardManager::criticalPoints = {
     {3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}
 };
 
-const int BoardManager::size = 15;
-
 void BoardManager::resetGame() {
-    for (auto &row: board) {
-        std::fill(row.begin(), row.end(), EMPTY);
+    for (auto &row : board) {
+        std::fill(std::begin(row), std::end(row), EMPTY);
     }
     _blackTurn = true;
     movesHistory.clear();
@@ -76,7 +74,7 @@ int BoardManager::checkWinner() const {
     };
 
     auto isInvalid = [&](int r, int c, int player) {
-        return r < 0 || r >= size || c < 0 || c >= size || board[r][c] != player;
+        return r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE || board[r][c] != player;
     };
 
     const int player = _blackTurn ? WHITE : BLACK; // Last move was by the opposite player
@@ -113,8 +111,8 @@ int BoardManager::checkWinner() const {
 }
 
 bool BoardManager::isValidMove(const BoardPosition position) const {
-    return position.row >= 0 && position.row < size &&
-           position.col >= 0 && position.col < size &&
+    return position.row >= 0 && position.row < BOARD_SIZE &&
+           position.col >= 0 && position.col < BOARD_SIZE &&
            board[position.row][position.col] == EMPTY;
 }
 
@@ -153,7 +151,7 @@ bool BoardManager::wouldWin(BoardPosition position, int player) const {
         for (int step = 1; step < 5; step++) {
             int newRow = position.row + dir[0] * step;
             int newCol = position.col + dir[1] * step;
-            if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size || 
+            if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE || 
                 board[newRow][newCol] != player) {
                 break;
             }
@@ -164,7 +162,7 @@ bool BoardManager::wouldWin(BoardPosition position, int player) const {
         for (int step = 1; step < 5; step++) {
             int newRow = position.row - dir[0] * step;
             int newCol = position.col - dir[1] * step;
-            if (newRow < 0 || newRow >= size || newCol < 0 || newCol >= size || 
+            if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE || 
                 board[newRow][newCol] != player) {
                 break;
             }

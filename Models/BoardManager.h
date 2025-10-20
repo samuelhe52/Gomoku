@@ -73,7 +73,7 @@ public:
     static const std::vector<BoardPosition> criticalPoints;
 
 private:
-    std::vector<std::vector<int>> board;
+    int board[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
     bool _blackTurn = true;
     // Keep track of moves for undo and win checking with cache information
     std::vector<MoveRecord> movesHistory;

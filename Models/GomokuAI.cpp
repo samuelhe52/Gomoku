@@ -10,7 +10,7 @@ int GomokuAI::color;
 
 BoardPosition GomokuAI::getBestMove(BoardManager &boardManager) {
     if (boardManager.isBoardEmpty()) {
-        return {BoardManager::size / 2, BoardManager::size / 2}; // Start in the center
+        return {BOARD_SIZE / 2, BOARD_SIZE / 2}; // Start in the center
     }
 
     return minimaxAlphaBeta(boardManager, MAX_DEPTH, true, getColor(),
@@ -23,8 +23,8 @@ BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
     // Placeholder: choose random available cell
     int randomRow, randomCol;
     do {
-        randomRow = rand() % BoardManager::size;
-        randomCol = rand() % BoardManager::size;
+        randomRow = rand() % BOARD_SIZE;
+        randomCol = rand() % BOARD_SIZE;
     } while (!boardManager.isValidMove({randomRow, randomCol}));
     return {randomRow, randomCol};
 }
@@ -42,8 +42,8 @@ std::pair<int, int> GomokuAI::nInRowCount(
     int openCount = 0;
     int closedCount = 0;
 
-    for (int row = 0; row < BoardManager::size; row++) {
-        for (int col = 0; col < BoardManager::size; col++) {
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = 0; col < BOARD_SIZE; col++) {
             const int currentCell = boardManager.getCell(row, col);
             if (currentCell != player) continue;
 
@@ -53,8 +53,8 @@ std::pair<int, int> GomokuAI::nInRowCount(
                     int newRow = row + dir[0] * step;
                     int newCol = col + dir[1] * step;
 
-                    if (newRow < 0 || newRow >= BoardManager::size ||
-                        newCol < 0 || newCol >= BoardManager::size ||
+                    if (newRow < 0 || newRow >= BOARD_SIZE ||
+                        newCol < 0 || newCol >= BOARD_SIZE ||
                         boardManager.getCell(newRow, newCol) != currentCell) {
                         break;
                     }
@@ -102,7 +102,7 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
         int scoreA = 0;
         int scoreB = 0;
 
-        int center = BoardManager::size / 2;
+        int center = BOARD_SIZE / 2;
         scoreA -= (abs(center - a.row) + abs(center - a.col));
         scoreB -= (abs(center - b.row) + abs(center - b.col));
 
@@ -141,13 +141,13 @@ int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
 
     // If there is no > 2 in a row, prioritize center control
     // if (playerScore == 0) {
-    //     const int center = BoardManager::size / 2;
-    //     for (int i = 0; i < BoardManager::size; ++i) {
-    //         for (int j = 0; j < BoardManager::size; ++j) {
+    //     const int center = BOARD_SIZE / 2;
+    //     for (int i = 0; i < BOARD_SIZE; ++i) {
+    //         for (int j = 0; j < BOARD_SIZE; ++j) {
     //             if (boardManager.getCell(i, j) == player) {
-    //                 playerScore += (BoardManager::size - (abs(center - i) + abs(center - j)));
+    //                 playerScore += (BOARD_SIZE - (abs(center - i) + abs(center - j)));
     //             } else if (boardManager.getCell(i, j) == opponent) {
-    //                 playerScore -= (BoardManager::size - (abs(center - i) + abs(center - j)));
+    //                 playerScore -= (BOARD_SIZE - (abs(center - i) + abs(center - j)));
     //             }
     //         }
     //     }
