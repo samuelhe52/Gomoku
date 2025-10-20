@@ -123,15 +123,17 @@ int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
     // Evaluate all positions around the last move to see if they would result in a win
     int playerOpenFours = openNInRowCount(boardManager, player, 4);
     int opponentOpenFours = openNInRowCount(boardManager, opponent, 4);
-    playerScore += weights[4] * (playerOpenFours * 50);
-    playerScore -= weights[4] * (opponentOpenFours * 50);
+    playerScore += weights[4] * (playerOpenFours * 55);
+    playerScore -= weights[4] * (opponentOpenFours * 45);
 
     // Handle 3 and 2 in a row
     for (int n = 3; n >= 2; --n) {
-        int playerOpen = openNInRowCount(boardManager, player, n);
-        int opponentOpen = openNInRowCount(boardManager, opponent, n);
+        auto [playerOpen, playerClosed] = nInRowCount(boardManager, player, n);
+        auto [opponentOpen, opponentClosed] = nInRowCount(boardManager, opponent, n);
         playerScore += weights[n] * (playerOpen * 10);
         playerScore -= weights[n] * (opponentOpen * 10);
+        playerScore += weights[n] * (playerClosed * 3);
+        playerScore -= weights[n] * (opponentClosed * 3);
         if (n == 3 && opponentOpen + playerOpen > 0) {
             break;
         }
@@ -164,9 +166,10 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
         int winner = boardManager.checkWinner();
         if (depth == 0 || winner != EMPTY) {
             if (winner == color) {
-                return {std::numeric_limits<int>::max() / 2, {}};
+                // Prefer immediate wins
+                return {std::numeric_limits<int>::max() / 2 + 10000, {}};
             } else if (winner == getOpponent(color)) {
-                return {std::numeric_limits<int>::min() / 2, {}};
+                return {std::numeric_limits<int>::min() / 2 - 10000, {}};
             }
             // Always evaluate from the AI's perspective
             return {evaluate(boardManager, color), {}};
