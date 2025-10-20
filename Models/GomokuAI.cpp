@@ -177,20 +177,20 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
             return {evaluate(boardManager, color), {}};
         }
 
-        BoardPosition best_move;
+        BoardPosition bestMove;
         auto moves = candidateMoves(boardManager);
         
         if (isMaximizing) {
-            int max_eval = std::numeric_limits<int>::min();
+            int maxEval = std::numeric_limits<int>::min();
 
             for (const auto& pos : moves) {
                 boardManager.makeMove(pos);
                 auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, getOpponent(currentPlayer), alpha, beta);
                 boardManager.undoMove();
                 
-                if (eval > max_eval) {
-                    max_eval = eval;
-                    best_move = pos;
+                if (eval > maxEval) {
+                    maxEval = eval;
+                    bestMove = pos;
                 }
                 
                 alpha = std::max(alpha, eval);
@@ -202,18 +202,18 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
                 }
             }
             
-            return {max_eval, best_move};
+            return {maxEval, bestMove};
         } else {
-            int min_eval = std::numeric_limits<int>::max();
+            int minEval = std::numeric_limits<int>::max();
 
             for (const auto& pos : moves) {
                 boardManager.makeMove(pos);
                 auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, getOpponent(currentPlayer), alpha, beta);
                 boardManager.undoMove();
                 
-                if (eval < min_eval) {
-                    min_eval = eval;
-                    best_move = pos;
+                if (eval < minEval) {
+                    minEval = eval;
+                    bestMove = pos;
                 }
                 
                 beta = std::min(beta, eval);
@@ -225,6 +225,6 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
                 }
             }
             
-            return {min_eval, best_move};
+            return {minEval, bestMove};
         }
 }

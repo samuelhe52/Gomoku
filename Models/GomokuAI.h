@@ -13,7 +13,6 @@
 #include <iostream>
 #include <limits>
 
-
 class GomokuAI {
 public:
     static BoardPosition getBestMove(BoardManager& boardManager);
