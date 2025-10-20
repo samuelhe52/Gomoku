@@ -32,22 +32,22 @@ private:
     // checked 4. minimax() -> core algorithm for determining a best move
     // checked 5. alpha-beta pruning
 
-    // Check if some player has N in a row. If onlyOpen is true, only count open N in a row.
-    [[nodiscard]] static int nInRowCount(
+    // Check if some player has N in a row. Returns a pair of (open count, closed count).
+    [[nodiscard]] static std::pair<int, int> nInRowCount(
         const BoardManager &boardManager,
         int player,
-        int n,
-        bool onlyOpen);
+        int n);
 
     // Check if some player has open N in a row. Returns a pair of
     [[nodiscard]] static int openNInRowCount(const BoardManager &boardManager,
                                              int player,
                                              int n) {
-        return nInRowCount(boardManager, player, n, true);
+        return nInRowCount(boardManager, player, n).first;
     }
 
     [[nodiscard]] static int fourInRowCount(const BoardManager& boardManager, int player) {
-        return nInRowCount(boardManager, player, 4, false);
+        auto [openCount, closedCount] = nInRowCount(boardManager, player, 4);
+        return openCount + closedCount;
     }
 
     // Get possible candidate moves within a certain radius of existing pieces

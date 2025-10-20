@@ -29,12 +29,10 @@ BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
     return {randomRow, randomCol};
 }
 
-int GomokuAI::nInRowCount(
+std::pair<int, int> GomokuAI::nInRowCount(
     const BoardManager& boardManager,
     const int player,
-    const int n,
-    const bool onlyOpen
-) {
+    const int n) {
     const int directions[4][2] = {
         {0, 1},  // Horizontal
         {1, 0},  // Vertical
@@ -42,6 +40,7 @@ int GomokuAI::nInRowCount(
         {1, -1}  // Diagonal
     };
     int openCount = 0;
+    int closedCount = 0;
 
     for (int row = 0; row < BoardManager::size; row++) {
         for (int col = 0; col < BoardManager::size; col++) {
@@ -67,20 +66,16 @@ int GomokuAI::nInRowCount(
                     bool beforeIsValid = boardManager.isValidMove({row - dir[0], col - dir[1]});
                     // Check the cell after the sequence
                     bool afterIsValid = boardManager.isValidMove({row + dir[0] * n, col + dir[1] * n});
-                    if (onlyOpen) {
-                        if (beforeIsValid && afterIsValid) {
-                            openCount++;
-                        }
-                    } else {
-                        if (beforeIsValid || afterIsValid) {
-                            openCount++;
-                        }
+                    if (beforeIsValid && afterIsValid) {
+                        openCount++;
+                    } else if (beforeIsValid || afterIsValid) {
+                        closedCount++;
                     }
                 }
             }
         }
     }
-    return openCount;
+    return {openCount, closedCount};
 }
 
 std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
