@@ -13,15 +13,15 @@ public:
     GameManager();
     void resetGame() { boardManager.resetGame(); }
     // Returns the winner after the move, EMPTY if no winner, BLACK if black wins, WHITE if white wins
-    int makeMove(BoardPosition position);
+    char makeMove(BoardPosition position);
     // Returns the winner after the move, EMPTY if no winner, BLACK if black wins, WHITE if white wins
-    int makeAIMove();
+    char makeAIMove();
     // Set the AI's color, BLACK(1) or WHITE(2)
-    void setAIColor(int c) { GomokuAI::setColor(c); }
+    void setAIColor(char c) { GomokuAI::setColor(c); }
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
-    [[nodiscard]] int checkWinner() const { return boardManager.checkWinner(); }
-    [[nodiscard]] int getCell(const int row, const int col) const { return boardManager.getCell(row, col); }
-    [[nodiscard]] int getCell(const BoardPosition position) const { return boardManager.getCell(position); }
+    [[nodiscard]] char checkWinner() const { return boardManager.checkWinner(); }
+    [[nodiscard]] char getCell(const int row, const int col) const { return boardManager.getCell(row, col); }
+    [[nodiscard]] char getCell(const BoardPosition position) const { return boardManager.getCell(position); }
     [[nodiscard]] bool isBoardFull() const { return boardManager.isBoardFull(); }
     [[nodiscard]] bool isBoardEmpty() const { return boardManager.isBoardEmpty(); }
 

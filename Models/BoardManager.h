@@ -47,21 +47,21 @@ public:
     void resetGame();
 
     // Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
-    int makeMove(BoardPosition position);
+    char makeMove(BoardPosition position);
     void undoMove();
 
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
-    [[nodiscard]] int checkWinner() const;
+    [[nodiscard]] char checkWinner() const;
 
-    [[nodiscard]] int getCell(const int row, const int col) const { return board[row][col]; }
-    [[nodiscard]] int getCell(const BoardPosition position) const { return board[position.row][position.col]; }
+    [[nodiscard]] char getCell(const int row, const int col) const { return board[row][col]; }
+    [[nodiscard]] char getCell(const BoardPosition position) const { return board[position.row][position.col]; }
     [[nodiscard]] bool isValidMove(BoardPosition position) const;
 
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
     
     // Check if placing a piece at position would win for the given player
-    [[nodiscard]] bool wouldWin(BoardPosition position, int player) const;
+    [[nodiscard]] bool wouldWin(BoardPosition position, char player) const;
 
     [[nodiscard]] std::set<BoardPosition> getCandidateMoves() const {
         return candidateMovesCache;
@@ -73,7 +73,7 @@ public:
     static const std::vector<BoardPosition> criticalPoints;
 
 private:
-    int board[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
+    char board[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
     bool _blackTurn = true;
     // Keep track of moves for undo and win checking with cache information
     std::vector<MoveRecord> movesHistory;

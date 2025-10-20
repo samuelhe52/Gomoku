@@ -18,12 +18,12 @@ public:
     static BoardPosition getBestMove(BoardManager& boardManager);
     static BoardPosition randomMove(const BoardManager& boardManager);
 
-    static void setColor(int c) { color = c; } // BLACK(1) or WHITE(2)
-    [[nodiscard]] static int getColor() { return color; }
+    static void setColor(char c) { color = c; } // BLACK(1) or WHITE(2)
+    [[nodiscard]] static char getColor() { return color; }
 
 private:
-    static int color; // BLACK(1) or WHITE(2)
-    [[nodiscard]] static int getOpponent(int player) { return (player == BLACK) ? WHITE : BLACK; }
+    static char color; // BLACK(1) or WHITE(2)
+    [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
 
     // TODO: 
     // checked 1. hasNInRow(enable checking only for open) 
@@ -35,17 +35,17 @@ private:
     // Check if some player has N in a row. Returns a pair of (open count, closed count).
     [[nodiscard]] static std::pair<int, int> nInRowCount(
         const BoardManager &boardManager,
-        int player,
+        char player,
         int n);
 
     // Check if some player has open N in a row. Returns a pair of
     [[nodiscard]] static int openNInRowCount(const BoardManager &boardManager,
-                                             int player,
+                                             char player,
                                              int n) {
         return nInRowCount(boardManager, player, n).first;
     }
 
-    [[nodiscard]] static int fourInRowCount(const BoardManager& boardManager, int player) {
+    [[nodiscard]] static int fourInRowCount(const BoardManager& boardManager, char player) {
         auto [openCount, closedCount] = nInRowCount(boardManager, player, 4);
         return openCount + closedCount;
     }
@@ -54,10 +54,10 @@ private:
     [[nodiscard]] static std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager);
 
     // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
-    [[nodiscard]] static int evaluate(const BoardManager& boardManager, int player);
+    [[nodiscard]] static int evaluate(const BoardManager& boardManager, char player);
 
     // minimax with alpha-beta pruning. Returns a pair of (score, best move)
-    [[nodiscard]] static std::pair<int, BoardPosition> minimaxAlphaBeta(BoardManager& boardManager, int depth, bool isMaximizing, int currentPlayer, int alpha, int beta);
+    [[nodiscard]] static std::pair<int, BoardPosition> minimaxAlphaBeta(BoardManager& boardManager, int depth, bool isMaximizing, char currentPlayer, int alpha, int beta);
 };
 
 

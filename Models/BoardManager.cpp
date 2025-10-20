@@ -28,7 +28,7 @@ void BoardManager::_makeMove(BoardPosition position) {
     movesHistory.push_back(record);
 }
 
-int BoardManager::makeMove(const BoardPosition position) {
+char BoardManager::makeMove(const BoardPosition position) {
     if (!isValidMove(position)) { 
         std::cerr << "Invalid move attempted: " << position << std::endl;
         return EMPTY; // Invalid move
@@ -63,7 +63,7 @@ void BoardManager::undoMove() {
     _blackTurn = !_blackTurn; // Switch turn back
 }
 
-int BoardManager::checkWinner() const {
+char BoardManager::checkWinner() const {
     if (movesHistory.empty()) return EMPTY;
 
     const int directions[4][2] = {
@@ -73,16 +73,16 @@ int BoardManager::checkWinner() const {
         {1, -1}  // Diagonal
     };
 
-    auto isInvalid = [&](int r, int c, int player) {
+    auto isInvalid = [&](int r, int c, char player) {
         return r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE || board[r][c] != player;
     };
 
-    const int player = _blackTurn ? WHITE : BLACK; // Last move was by the opposite player
+    const char player = _blackTurn ? WHITE : BLACK; // Last move was by the opposite player
     BoardPosition lastMove = movesHistory.back().position;
 
     for (const auto& dir : directions) {
         auto [row, col] = lastMove;
-        const int currentCell = board[row][col];
+    const char currentCell = board[row][col];
         if (currentCell == EMPTY) continue;
         int count = 1;
 
@@ -134,7 +134,7 @@ bool BoardManager::isBoardEmpty() const {
     return true;
 }
 
-bool BoardManager::wouldWin(BoardPosition position, int player) const {
+bool BoardManager::wouldWin(BoardPosition position, char player) const {
     if (!isValidMove(position)) return false;
     
     const int directions[4][2] = {

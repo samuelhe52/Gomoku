@@ -26,7 +26,7 @@ public:
         game.makeAIMove();
         update();
     }
-    void setAIColor(int c) { game.setAIColor(c); }
+    void setAIColor(char c) { game.setAIColor(c); }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -46,7 +46,7 @@ private:
     int borderSize = 0;
     int startX = 0;
     int startY = 0;
-    int winner = EMPTY; // EMPTY if no winner, BLACK if black wins, WHITE if white wins
+    char winner = EMPTY; // EMPTY if no winner, BLACK if black wins, WHITE if white wins
     bool boardIsFull = false;
     // Dark yellow background
     const QColor bgColor = QColor(218, 160, 108);

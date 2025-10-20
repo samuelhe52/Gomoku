@@ -6,15 +6,15 @@
 
 GameManager::GameManager() = default;
 
-int GameManager::makeMove(const BoardPosition position) {
+char GameManager::makeMove(const BoardPosition position) {
     if (!boardManager.isValidMove(position)) return EMPTY; // Invalid move
-    const int winner = boardManager.makeMove(position);
+    const char winner = boardManager.makeMove(position);
     if (winner != EMPTY) return winner; // Player wins
     // AI's turn
     return makeAIMove();
 }
 
-int GameManager::makeAIMove() {
+char GameManager::makeAIMove() {
     // AI's turn
     // Get AI move
     BoardPosition aiMove{};

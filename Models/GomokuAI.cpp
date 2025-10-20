@@ -6,7 +6,7 @@
 #include "BoardManager.h"
 
 // Define static member variable
-int GomokuAI::color;
+char GomokuAI::color;
 
 BoardPosition GomokuAI::getBestMove(BoardManager &boardManager) {
     if (boardManager.isBoardEmpty()) {
@@ -31,7 +31,7 @@ BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
 
 std::pair<int, int> GomokuAI::nInRowCount(
     const BoardManager& boardManager,
-    const int player,
+    const char player,
     const int n) {
     const int directions[4][2] = {
         {0, 1},  // Horizontal
@@ -44,7 +44,7 @@ std::pair<int, int> GomokuAI::nInRowCount(
 
     for (int row = 0; row < BOARD_SIZE; row++) {
         for (int col = 0; col < BOARD_SIZE; col++) {
-            const int currentCell = boardManager.getCell(row, col);
+            const char currentCell = boardManager.getCell(row, col);
             if (currentCell != player) continue;
 
             for (const auto& dir : directions) {
@@ -112,8 +112,8 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
     return moves;
 }
 
-int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
-    const int opponent = getOpponent(player);
+int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
+    const char opponent = getOpponent(player);
 
     // Weights for 0 to 5 in a row
     const int weights[6] = {0, 1, 3, 100, 1000, 10000};
@@ -131,7 +131,7 @@ int GomokuAI::evaluate(const BoardManager &boardManager, int player) {
         auto [playerOpen, playerClosed] = nInRowCount(boardManager, player, n);
         auto [opponentOpen, opponentClosed] = nInRowCount(boardManager, opponent, n);
         playerScore += weights[n] * (playerOpen * 10);
-        playerScore -= weights[n] * (opponentOpen * 10);
+        playerScore -= weights[n] * (opponentOpen * 50);
         playerScore += weights[n] * (playerClosed * 3);
         playerScore -= weights[n] * (opponentClosed * 3);
         if (n == 3 && opponentOpen + playerOpen > 0) {
@@ -160,10 +160,10 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
     BoardManager& boardManager,
     int depth,
     bool isMaximizing,
-    int currentPlayer,
+    char currentPlayer,
     int alpha,
     int beta) {
-        int winner = boardManager.checkWinner();
+        char winner = boardManager.checkWinner();
         if (depth == 0 || winner != EMPTY) {
             if (winner == color) {
                 // Prefer immediate wins
