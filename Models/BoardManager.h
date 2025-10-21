@@ -34,12 +34,6 @@ struct BoardPosition {
     }
 };
 
-struct MoveRecord {
-    BoardPosition position;
-    std::set<BoardPosition> addedCandidates;
-    bool removedFromCache;
-};
-
 class BoardManager {
 public:
     BoardManager();
@@ -75,15 +69,28 @@ public:
 private:
     char board[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
     bool _blackTurn = true;
-    // Keep track of moves for undo and win checking with cache information
-    std::vector<MoveRecord> movesHistory;
-    std::set<BoardPosition> candidateMovesCache;
-    void updateCandidatesCache();
-    std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;
-    const int candidateRadius = MAX_CANDIDATE_RADIUS;
 
     // Performs the combined action of making a move, adding to history, and switching turn
     void _makeMove(BoardPosition position);
+
+    // Keep track of moves for undo and win checking with cache information
+    struct CandidatesDelta {
+        std::set<BoardPosition> addedCandidates;
+        bool removedFromCache;
+    };
+
+    std::set<BoardPosition> candidateMovesCache;
+    CandidatesDelta updateCandidatesCache(BoardPosition pos, char player);
+    std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;
+    void reverseCandidatesCache(const CandidatesDelta& delta, BoardPosition moveUndone);
+    const int candidateRadius = MAX_CANDIDATE_RADIUS;
+
+    struct MoveRecord {
+        BoardPosition position;
+        CandidatesDelta candidatesDelta;
+    };
+
+    std::vector<MoveRecord> movesHistory;
 };
 
 #endif //GOMOKU_BOARDMANAGER_H

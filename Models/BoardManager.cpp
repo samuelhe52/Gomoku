@@ -25,6 +25,7 @@ void BoardManager::_makeMove(BoardPosition position) {
     
     MoveRecord record;
     record.position = position;
+    record.candidatesDelta = updateCandidatesCache(position, board[position.row][position.col]);
     movesHistory.push_back(record);
 }
 
@@ -35,7 +36,6 @@ char BoardManager::makeMove(const BoardPosition position) {
     }
 
     _makeMove(position);
-    updateCandidatesCache();
     return checkWinner();
 }
 
@@ -47,20 +47,24 @@ void BoardManager::undoMove() {
     
     // Reset the board position
     board[position.row][position.col] = EMPTY;
+
+    reverseCandidatesCache(lastRecord.candidatesDelta, position);
     
-    // Reverse the cache changes
+    movesHistory.pop_back(); // Remove the undone move from history
+    _blackTurn = !_blackTurn; // Switch turn back
+}
+
+void BoardManager::reverseCandidatesCache(const CandidatesDelta& delta, BoardPosition moveUndone) {
+     // Reverse the cache changes
     // Remove all candidates that were added for this move
-    for (const auto& candidate : lastRecord.addedCandidates) {
+    for (const auto& candidate : delta.addedCandidates) {
         candidateMovesCache.erase(candidate);
     }
     
     // If this position was in the cache before the move, add it back
-    if (lastRecord.removedFromCache) {
-        candidateMovesCache.insert(position);
+    if (delta.removedFromCache) {
+        candidateMovesCache.insert(moveUndone);
     }
-    
-    movesHistory.pop_back(); // Remove the undone move from history
-    _blackTurn = !_blackTurn; // Switch turn back
 }
 
 char BoardManager::checkWinner() const {
@@ -177,27 +181,27 @@ bool BoardManager::wouldWin(BoardPosition position, char player) const {
     return false;
 }
 
-void BoardManager::updateCandidatesCache() {
-    if (movesHistory.empty()) return;
-    
-    // Get reference to the last move record to update it
-    MoveRecord& lastRecord = movesHistory.back();
-    BoardPosition lastMove = lastRecord.position;
+BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
+    const BoardPosition pos,
+    const char player
+) {
+    CandidatesDelta lastRecord;
     
     // Check if this position was already in the cache
-    lastRecord.removedFromCache = candidateMovesCache.count(lastMove) > 0;
-    
+    lastRecord.removedFromCache = candidateMovesCache.count(pos) > 0;
+
     // Remove the move position from cache (it's now occupied)
-    candidateMovesCache.erase(lastMove);
-    
+    candidateMovesCache.erase(pos);
+
     // Add new candidates around the move and track them
-    for (const auto& pos : candidatesAround(lastMove, candidateRadius)) {
+    for (const auto& newPos : candidatesAround(pos, candidateRadius)) {
         // Only track truly new candidates (not already in cache)
-        if (candidateMovesCache.count(pos) == 0) {
-            lastRecord.addedCandidates.insert(pos);
-            candidateMovesCache.insert(pos);
+        if (candidateMovesCache.count(newPos) == 0) {
+            lastRecord.addedCandidates.insert(newPos);
+            candidateMovesCache.insert(newPos);
         }
     }
+    return lastRecord;
 }
 
 std::vector<BoardPosition> BoardManager::candidatesAround(
