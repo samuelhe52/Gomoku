@@ -138,49 +138,6 @@ bool BoardManager::isBoardEmpty() const {
     return true;
 }
 
-bool BoardManager::wouldWin(BoardPosition position, char player) const {
-    if (!isValidMove(position)) return false;
-    
-    const int directions[4][2] = {
-        {0, 1},  // Horizontal
-        {1, 0},  // Vertical
-        {1, 1},  // Diagonal
-        {1, -1}  // Diagonal
-    };
-
-    for (const auto& dir : directions) {
-        int count = 1; // Count the position itself
-
-        // Check in the positive direction
-        for (int step = 1; step < 5; step++) {
-            int newRow = position.row + dir[0] * step;
-            int newCol = position.col + dir[1] * step;
-            if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE || 
-                board[newRow][newCol] != player) {
-                break;
-            }
-            count++;
-        }
-
-        // Check in the negative direction
-        for (int step = 1; step < 5; step++) {
-            int newRow = position.row - dir[0] * step;
-            int newCol = position.col - dir[1] * step;
-            if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE || 
-                board[newRow][newCol] != player) {
-                break;
-            }
-            count++;
-        }
-
-        if (count >= 5) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
     const BoardPosition pos,
     const char player

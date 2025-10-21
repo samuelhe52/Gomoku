@@ -25,6 +25,14 @@ private:
     static char color; // BLACK(1) or WHITE(2)
     [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
 
+    [[nodiscard]] static bool wouldWin(const BoardManager& boardManager,
+                                       BoardPosition position,
+                                       char player);
+
+    [[nodiscard]] static bool posesThreat(const BoardManager& boardManager,
+                                          BoardPosition position,
+                                          char player);
+
     // TODO: 
     // checked 1. hasNInRow(enable checking only for open) 
     // checked 2. possibleBestMoves(board, radius) -> get moves surrounding existing non-empty cells

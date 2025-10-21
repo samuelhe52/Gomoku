@@ -55,8 +55,6 @@ public:
     [[nodiscard]] bool isBoardEmpty() const;
     
     // Check if placing a piece at position would win for the given player
-    [[nodiscard]] bool wouldWin(BoardPosition position, char player) const;
-
     [[nodiscard]] std::set<BoardPosition> getCandidateMoves() const {
         return candidateMovesCache;
     }

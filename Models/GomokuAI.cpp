@@ -29,6 +29,108 @@ BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
     return {randomRow, randomCol};
 }
 
+bool GomokuAI::wouldWin(const BoardManager& boardManager,
+                        const BoardPosition position,
+                        const char player) {
+    if (!boardManager.isValidMove(position)) return false;
+
+    const int directions[4][2] = {
+        {0, 1},  // Horizontal
+        {1, 0},  // Vertical
+        {1, 1},  // Diagonal
+        {1, -1}  // Diagonal
+    };
+
+    for (const auto& dir : directions) {
+        int count = 1; // Include the hypothetical move itself
+
+        for (int step = 1; step < 5; ++step) {
+            const int newRow = position.row + dir[0] * step;
+            const int newCol = position.col + dir[1] * step;
+            if (newRow < 0 || newRow >= BOARD_SIZE ||
+                newCol < 0 || newCol >= BOARD_SIZE ||
+                boardManager.getCell(newRow, newCol) != player) {
+                break;
+            }
+            count++;
+        }
+
+        for (int step = 1; step < 5; ++step) {
+            const int newRow = position.row - dir[0] * step;
+            const int newCol = position.col - dir[1] * step;
+            if (newRow < 0 || newRow >= BOARD_SIZE ||
+                newCol < 0 || newCol >= BOARD_SIZE ||
+                boardManager.getCell(newRow, newCol) != player) {
+                break;
+            }
+            count++;
+        }
+
+        if (count >= 5) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool GomokuAI::posesThreat(const BoardManager& boardManager,
+                           const BoardPosition position,
+                           const char player) {
+    if (!boardManager.isValidMove(position)) return false;
+
+    const int directions[4][2] = {
+        {0, 1},
+        {1, 0},
+        {1, 1},
+        {1, -1}
+    };
+
+    for (const auto& dir : directions) {
+        int count = 1;
+
+        int forwardRow = position.row + dir[0];
+        int forwardCol = position.col + dir[1];
+        while (forwardRow >= 0 && forwardRow < BOARD_SIZE &&
+               forwardCol >= 0 && forwardCol < BOARD_SIZE &&
+               boardManager.getCell(forwardRow, forwardCol) == player) {
+            count++;
+            forwardRow += dir[0];
+            forwardCol += dir[1];
+        }
+
+        int backwardRow = position.row - dir[0];
+        int backwardCol = position.col - dir[1];
+        while (backwardRow >= 0 && backwardRow < BOARD_SIZE &&
+               backwardCol >= 0 && backwardCol < BOARD_SIZE &&
+               boardManager.getCell(backwardRow, backwardCol) == player) {
+            count++;
+            backwardRow -= dir[0];
+            backwardCol -= dir[1];
+        }
+
+        if (count > 4) {
+            continue; // This move is a direct win, handled by wouldWin
+        }
+
+        const bool forwardOpen = forwardRow >= 0 && forwardRow < BOARD_SIZE &&
+                                 forwardCol >= 0 && forwardCol < BOARD_SIZE &&
+                                 boardManager.getCell(forwardRow, forwardCol) == EMPTY;
+
+        const bool backwardOpen = backwardRow >= 0 && backwardRow < BOARD_SIZE &&
+                                  backwardCol >= 0 && backwardCol < BOARD_SIZE &&
+                                  boardManager.getCell(backwardRow, backwardCol) == EMPTY;
+
+        if (count == 4 || count == 3) {
+            if (forwardOpen || backwardOpen) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 std::pair<int, int> GomokuAI::nInRowCount(
     const BoardManager& boardManager,
     const char player,
@@ -49,14 +151,19 @@ std::pair<int, int> GomokuAI::nInRowCount(
 
             for (const auto& dir : directions) {
                 int count = 1;
+                int encounteredEmpty = 0;
                 for (int step = 1; step < n; step++) {
                     int newRow = row + dir[0] * step;
                     int newCol = col + dir[1] * step;
 
                     if (newRow < 0 || newRow >= BOARD_SIZE ||
                         newCol < 0 || newCol >= BOARD_SIZE ||
-                        boardManager.getCell(newRow, newCol) != currentCell) {
+                        boardManager.getCell(newRow, newCol) == getOpponent(player)) {
                         break;
+                    }
+                    if (boardManager.getCell(newRow, newCol) == EMPTY) {
+                        encounteredEmpty++;
+                        if (encounteredEmpty > 1) break;
                     }
                     count++; // Found another with the same color in the direction
                 }
@@ -80,13 +187,17 @@ std::pair<int, int> GomokuAI::nInRowCount(
 
 std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
     std::vector<BoardPosition> prioritizedMoves;
+    std::vector<BoardPosition> threatMoves;
     std::vector<BoardPosition> moves;
 
     for (const auto& pos : boardManager.getCandidateMoves()) {
-        if (boardManager.wouldWin(pos, color) ||
-            boardManager.wouldWin(pos, getOpponent(color))) {
+        if (wouldWin(boardManager, pos, color) ||
+            wouldWin(boardManager, pos, getOpponent(color))) {
             // Prioritize immediate winning/blocking moves
             prioritizedMoves.push_back(pos);
+        } else if (posesThreat(boardManager, pos, color) ||
+                   posesThreat(boardManager, pos, getOpponent(color))) {
+            threatMoves.push_back(pos);
         } else {
             moves.push_back(pos);
         }
@@ -95,7 +206,7 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
     if (!prioritizedMoves.empty()) {
         return prioritizedMoves;
     }
-        
+
     // Order moves by heuristic: prefer center control 
     // TODO: improve heuristic by preferring existing pieces as well
     std::sort(moves.begin(), moves.end(), [&](const BoardPosition& a, const BoardPosition& b) {
@@ -108,8 +219,9 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
 
         return scoreA > scoreB; 
     });
-    
-    return moves;
+
+    threatMoves.insert(threatMoves.end(), moves.begin(), moves.end());
+    return threatMoves;
 }
 
 int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
@@ -130,11 +242,18 @@ int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
     for (int n = 3; n >= 2; --n) {
         auto [playerOpen, playerClosed] = nInRowCount(boardManager, player, n);
         auto [opponentOpen, opponentClosed] = nInRowCount(boardManager, opponent, n);
-        playerScore += weights[n] * (playerOpen * 10);
-        playerScore -= weights[n] * (opponentOpen * 50);
+        playerScore += weights[n] * (playerOpen * 20);
+        playerScore -= weights[n] * (opponentOpen * 10);
         playerScore += weights[n] * (playerClosed * 3);
         playerScore -= weights[n] * (opponentClosed * 3);
-        if (n == 3 && opponentOpen + playerOpen > 0) {
+        // Additional scoring for multiple open threes
+        if (n == 3 && playerOpen >= 2) {
+            playerScore += weights[4] * (playerOpen / 2) * 50;
+        }
+        if (n == 3 && opponentOpen >= 2) {
+            playerScore -= weights[4] * (opponentOpen / 2) * 45;
+        }
+        if (n == 3 && playerOpen + opponentOpen > 0) {
             break;
         }
     }
