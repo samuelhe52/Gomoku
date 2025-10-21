@@ -64,6 +64,11 @@ private:
     // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
     [[nodiscard]] static int evaluate(const BoardManager& boardManager, char player);
 
+    [[nodiscard]] static bool isInsideBoard(int row, int col);
+    [[nodiscard]] static int sequenceScore(int length, int openSides);
+    [[nodiscard]] static int evaluatePlayer(const BoardManager& boardManager, char player);
+    [[nodiscard]] static int centerControlBias(const BoardManager& boardManager, char player);
+
     // minimax with alpha-beta pruning. Returns a pair of (score, best move)
     [[nodiscard]] static std::pair<int, BoardPosition> minimaxAlphaBeta(BoardManager& boardManager, int depth, bool isMaximizing, char currentPlayer, int alpha, int beta);
 };

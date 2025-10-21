@@ -224,55 +224,122 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
     return threatMoves;
 }
 
-int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
-    const char opponent = getOpponent(player);
+bool GomokuAI::isInsideBoard(const int row, const int col) {
+    return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+}
 
-    // Weights for 0 to 5 in a row
-    const int weights[6] = {0, 1, 3, 100, 1000, 10000};
+int GomokuAI::sequenceScore(const int length, const int openSides) {
+    if (length >= 5) {
+        return 1000000;
+    }
 
-    int playerScore = 0;
+    switch (length) {
+        case 4:
+            if (openSides == 2) return 50000;
+            if (openSides == 1) return 10000;
+            return 500;
+        case 3:
+            if (openSides == 2) return 2000;
+            if (openSides == 1) return 400;
+            return 50;
+        case 2:
+            if (openSides == 2) return 200;
+            if (openSides == 1) return 60;
+            return 10;
+        case 1:
+            if (openSides == 2) return 20;
+            if (openSides == 1) return 5;
+            return 1;
+        default:
+            return 0;
+    }
+}
 
-    // Evaluate all positions around the last move to see if they would result in a win
-    int playerOpenFours = openNInRowCount(boardManager, player, 4);
-    int opponentOpenFours = openNInRowCount(boardManager, opponent, 4);
-    playerScore += weights[4] * (playerOpenFours * 55);
-    playerScore -= weights[4] * (opponentOpenFours * 45);
+int GomokuAI::evaluatePlayer(const BoardManager& boardManager, const char player) {
+    const int directions[4][2] = {
+        {0, 1},
+        {1, 0},
+        {1, 1},
+        {1, -1}
+    };
 
-    // Handle 3 and 2 in a row
-    for (int n = 3; n >= 2; --n) {
-        auto [playerOpen, playerClosed] = nInRowCount(boardManager, player, n);
-        auto [opponentOpen, opponentClosed] = nInRowCount(boardManager, opponent, n);
-        playerScore += weights[n] * (playerOpen * 20);
-        playerScore -= weights[n] * (opponentOpen * 10);
-        playerScore += weights[n] * (playerClosed * 3);
-        playerScore -= weights[n] * (opponentClosed * 3);
-        // Additional scoring for multiple open threes
-        if (n == 3 && playerOpen >= 2) {
-            playerScore += weights[4] * (playerOpen / 2) * 50;
-        }
-        if (n == 3 && opponentOpen >= 2) {
-            playerScore -= weights[4] * (opponentOpen / 2) * 45;
-        }
-        if (n == 3 && playerOpen + opponentOpen > 0) {
-            break;
+    int score = 0;
+
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            if (boardManager.getCell(row, col) != player) {
+                continue;
+            }
+
+            for (const auto& dir : directions) {
+                const int prevRow = row - dir[0];
+                const int prevCol = col - dir[1];
+
+                if (isInsideBoard(prevRow, prevCol) &&
+                    boardManager.getCell(prevRow, prevCol) == player) {
+                    continue; // Already counted as part of a preceding segment
+                }
+
+                int length = 1;
+                int nextRow = row + dir[0];
+                int nextCol = col + dir[1];
+
+                while (isInsideBoard(nextRow, nextCol) &&
+                       boardManager.getCell(nextRow, nextCol) == player) {
+                    ++length;
+                    nextRow += dir[0];
+                    nextCol += dir[1];
+                }
+
+                const bool openStart = isInsideBoard(prevRow, prevCol) &&
+                                        boardManager.getCell(prevRow, prevCol) == EMPTY;
+                const bool openEnd = isInsideBoard(nextRow, nextCol) &&
+                                      boardManager.getCell(nextRow, nextCol) == EMPTY;
+                score += sequenceScore(length, static_cast<int>(openStart) + static_cast<int>(openEnd));
+            }
         }
     }
 
-    // If there is no > 2 in a row, prioritize center control
-    // if (playerScore == 0) {
-    //     const int center = BOARD_SIZE / 2;
-    //     for (int i = 0; i < BOARD_SIZE; ++i) {
-    //         for (int j = 0; j < BOARD_SIZE; ++j) {
-    //             if (boardManager.getCell(i, j) == player) {
-    //                 playerScore += (BOARD_SIZE - (abs(center - i) + abs(center - j)));
-    //             } else if (boardManager.getCell(i, j) == opponent) {
-    //                 playerScore -= (BOARD_SIZE - (abs(center - i) + abs(center - j)));
-    //             }
-    //         }
-    //     }
-    // }
+    return score;
+}
 
-    return playerScore;
+int GomokuAI::centerControlBias(const BoardManager& boardManager, const char player) {
+    const int center = BOARD_SIZE / 2;
+    int score = 0;
+
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            if (boardManager.getCell(row, col) != player) {
+                continue;
+            }
+
+            const int distance = std::abs(center - row) + std::abs(center - col);
+            int contribution = std::max(1, BOARD_SIZE - distance);
+            score += contribution;
+        }
+    }
+
+    return score;
+}
+
+int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
+    const char opponent = getOpponent(player);
+    const int playerSequences = evaluatePlayer(boardManager, player);
+    const int opponentSequences = evaluatePlayer(boardManager, opponent);
+
+    int score = playerSequences - opponentSequences;
+
+    const int winThreshold = 500000;
+    if (score > winThreshold || score < -winThreshold) {
+        return score;
+        }
+
+    const int centerWeight = 3;
+    const int centerScore = centerControlBias(boardManager, player) -
+                            centerControlBias(boardManager, opponent);
+    score += centerWeight * centerScore;
+
+    return score;
 }
 
 std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
