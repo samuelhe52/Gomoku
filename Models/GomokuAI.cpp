@@ -131,59 +131,7 @@ bool GomokuAI::posesThreat(const BoardManager& boardManager,
     return false;
 }
 
-std::pair<int, int> GomokuAI::nInRowCount(
-    const BoardManager& boardManager,
-    const char player,
-    const int n) {
-    const int directions[4][2] = {
-        {0, 1},  // Horizontal
-        {1, 0},  // Vertical
-        {1, 1},  // Diagonal
-        {1, -1}  // Diagonal
-    };
-    int openCount = 0;
-    int closedCount = 0;
 
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = 0; col < BOARD_SIZE; col++) {
-            const char currentCell = boardManager.getCell(row, col);
-            if (currentCell != player) continue;
-
-            for (const auto& dir : directions) {
-                int count = 1;
-                int encounteredEmpty = 0;
-                for (int step = 1; step < n; step++) {
-                    int newRow = row + dir[0] * step;
-                    int newCol = col + dir[1] * step;
-
-                    if (newRow < 0 || newRow >= BOARD_SIZE ||
-                        newCol < 0 || newCol >= BOARD_SIZE ||
-                        boardManager.getCell(newRow, newCol) == getOpponent(player)) {
-                        break;
-                    }
-                    if (boardManager.getCell(newRow, newCol) == EMPTY) {
-                        encounteredEmpty++;
-                        if (encounteredEmpty > 1) break;
-                    }
-                    count++; // Found another with the same color in the direction
-                }
-                
-                if (count >= n) {
-                    // Check the cell before the sequence
-                    bool beforeIsValid = boardManager.isValidMove({row - dir[0], col - dir[1]});
-                    // Check the cell after the sequence
-                    bool afterIsValid = boardManager.isValidMove({row + dir[0] * n, col + dir[1] * n});
-                    if (beforeIsValid && afterIsValid) {
-                        openCount++;
-                    } else if (beforeIsValid || afterIsValid) {
-                        closedCount++;
-                    }
-                }
-            }
-        }
-    }
-    return {openCount, closedCount};
-}
 
 std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
     std::vector<BoardPosition> prioritizedMoves;
@@ -207,8 +155,7 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
         return prioritizedMoves;
     }
 
-    // Order moves by heuristic: prefer center control 
-    // TODO: improve heuristic by preferring existing pieces as well
+    // Prefer center control 
     std::sort(moves.begin(), moves.end(), [&](const BoardPosition& a, const BoardPosition& b) {
         int scoreA = 0;
         int scoreB = 0;
@@ -237,7 +184,7 @@ int GomokuAI::sequenceScore(const int length, const int openSides) {
         case 4:
             if (openSides == 2) return 50000;
             if (openSides == 1) return 10000;
-            return 500;
+            return 300;
         case 3:
             if (openSides == 2) return 2000;
             if (openSides == 1) return 400;
@@ -255,7 +202,7 @@ int GomokuAI::sequenceScore(const int length, const int openSides) {
     }
 }
 
-int GomokuAI::evaluatePlayer(const BoardManager& boardManager, const char player) {
+GomokuAI::SequenceSummary GomokuAI::evaluateSequences(const BoardManager& boardManager, const char player) {
     const int directions[4][2] = {
         {0, 1},
         {1, 0},
@@ -263,7 +210,7 @@ int GomokuAI::evaluatePlayer(const BoardManager& boardManager, const char player
         {1, -1}
     };
 
-    int score = 0;
+    SequenceSummary summary;
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
@@ -291,16 +238,38 @@ int GomokuAI::evaluatePlayer(const BoardManager& boardManager, const char player
                     nextCol += dir[1];
                 }
 
-                const bool openStart = isInsideBoard(prevRow, prevCol) &&
+                const bool openStart = isInsideBoard(prevRow, prevCol) && 
                                         boardManager.getCell(prevRow, prevCol) == EMPTY;
                 const bool openEnd = isInsideBoard(nextRow, nextCol) &&
-                                      boardManager.getCell(nextRow, nextCol) == EMPTY;
-                score += sequenceScore(length, static_cast<int>(openStart) + static_cast<int>(openEnd));
+                                        boardManager.getCell(nextRow, nextCol) == EMPTY;
+                const int openSides = static_cast<int>(openStart) + static_cast<int>(openEnd);
+                summary.score += sequenceScore(length, openSides);
+
+                if (length >= 5) {
+                    if (openSides > 0) {
+                        summary.openFours += 1;
+                    }
+                    continue;
+                }
+
+                if (length == 4) {
+                    if (openSides == 2) {
+                        summary.openFours += 1;
+                    } else if (openSides == 1) {
+                        summary.semiOpenFours += 1;
+                    }
+                } else if (length == 3) {
+                    if (openSides == 2) {
+                        summary.openThrees += 1;
+                    } else if (openSides == 1) {
+                        summary.semiOpenThrees += 1;
+                    }
+                }
             }
         }
     }
 
-    return score;
+    return summary;
 }
 
 int GomokuAI::centerControlBias(const BoardManager& boardManager, const char player) {
@@ -324,17 +293,36 @@ int GomokuAI::centerControlBias(const BoardManager& boardManager, const char pla
 
 int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
     const char opponent = getOpponent(player);
-    const int playerSequences = evaluatePlayer(boardManager, player);
-    const int opponentSequences = evaluatePlayer(boardManager, opponent);
+    const SequenceSummary playerSummary = evaluateSequences(boardManager, player);
+    const SequenceSummary opponentSummary = evaluateSequences(boardManager, opponent);
 
-    int score = playerSequences - opponentSequences;
+    if (playerSummary.openFours > 0) {
+        return 400000 + playerSummary.openFours * 2000;
+    }
+    if (opponentSummary.openFours > 0) {
+        return -400000 - opponentSummary.openFours * 2000;
+    }
 
-    const int winThreshold = 500000;
-    if (score > winThreshold || score < -winThreshold) {
-        return score;
-        }
+    int score = playerSummary.score - opponentSummary.score;
 
-    const int centerWeight = 3;
+    const int openThreeBonus = 15000;
+    score += openThreeBonus * (playerSummary.openThrees - opponentSummary.openThrees);
+
+    const int doubleThreeBonus = 60000;
+    if (playerSummary.openThrees >= 2) {
+        score += doubleThreeBonus;
+    }
+    if (opponentSummary.openThrees >= 2) {
+        score -= doubleThreeBonus;
+    }
+
+    const int semiOpenThreeBonus = 4000;
+    score += semiOpenThreeBonus * (playerSummary.semiOpenThrees - opponentSummary.semiOpenThrees);
+
+    const int semiOpenFourBonus = 20000;
+    score += semiOpenFourBonus * (playerSummary.semiOpenFours - opponentSummary.semiOpenFours);
+
+    const int centerWeight = 2;
     const int centerScore = centerControlBias(boardManager, player) -
                             centerControlBias(boardManager, opponent);
     score += centerWeight * centerScore;

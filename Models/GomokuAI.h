@@ -33,40 +33,23 @@ private:
                                           BoardPosition position,
                                           char player);
 
-    // TODO: 
-    // checked 1. hasNInRow(enable checking only for open) 
-    // checked 2. possibleBestMoves(board, radius) -> get moves surrounding existing non-empty cells
-    // checked 3. evaluate(board, player) -> heuristic evaluation, returns a score
-    // checked 4. minimax() -> core algorithm for determining a best move
-    // checked 5. alpha-beta pruning
-
-    // Check if some player has N in a row. Returns a pair of (open count, closed count).
-    [[nodiscard]] static std::pair<int, int> nInRowCount(
-        const BoardManager &boardManager,
-        char player,
-        int n);
-
-    // Check if some player has open N in a row. Returns a pair of
-    [[nodiscard]] static int openNInRowCount(const BoardManager &boardManager,
-                                             char player,
-                                             int n) {
-        return nInRowCount(boardManager, player, n).first;
-    }
-
-    [[nodiscard]] static int fourInRowCount(const BoardManager& boardManager, char player) {
-        auto [openCount, closedCount] = nInRowCount(boardManager, player, 4);
-        return openCount + closedCount;
-    }
-
     // Get possible candidate moves within a certain radius of existing pieces
     [[nodiscard]] static std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager);
 
     // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
     [[nodiscard]] static int evaluate(const BoardManager& boardManager, char player);
 
+    struct SequenceSummary {
+        int score = 0;
+        int openThrees = 0;
+        int semiOpenThrees = 0;
+        int openFours = 0;
+        int semiOpenFours = 0;
+    };
+
     [[nodiscard]] static bool isInsideBoard(int row, int col);
     [[nodiscard]] static int sequenceScore(int length, int openSides);
-    [[nodiscard]] static int evaluatePlayer(const BoardManager& boardManager, char player);
+    [[nodiscard]] static SequenceSummary evaluateSequences(const BoardManager& boardManager, char player);
     [[nodiscard]] static int centerControlBias(const BoardManager& boardManager, char player);
 
     // minimax with alpha-beta pruning. Returns a pair of (score, best move)
