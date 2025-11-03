@@ -21,16 +21,25 @@ public:
     explicit GameWidget(QWidget *parent = nullptr);
     
 private:
+    // Model
+    GameManager gameManager;
+
+    // UI Components
     BoardWidget *board;
-    QVBoxLayout *overlayLayout;
-    ColorChooserWidget *colorChooser;
     QStackedWidget *boardStack;
+    ColorChooserWidget *colorChooser;
     QPushButton *resetButton;
+
+    // Layouts
     QBoxLayout *mainLayout;
     QBoxLayout *buttonLayout;
-    GameManager gameManager;
+    QVBoxLayout *overlayLayout;
     
-    void setupUI();
+    void setupConnections();
+    void setupLayouts();
+    void setupBoard();
+    void setupOverlay();
+    void initializeComponents();
     void handleHumanMove(BoardPosition position);
     void startGame(bool playerIsBlack);
     void requestAIMove();

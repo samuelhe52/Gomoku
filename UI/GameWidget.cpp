@@ -5,72 +5,89 @@
 #include "GameWidget.h"
 
 GameWidget::GameWidget(QWidget *parent) : QWidget(parent) {
-    setupUI();
+    initializeComponents();
+    setupBoard();
+    setupOverlay();
+    setupLayouts();
+    setupConnections();
 }
 
-void GameWidget::setupUI() {
+void GameWidget::initializeComponents() {
+    // Background color
     QPalette palette = this->palette();
     palette.setColor(QPalette::Window, QColor(218, 160, 108));
     this->setPalette(palette);
     this->setAutoFillBackground(true);
     
+    // Main layout
     mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 15);
     mainLayout->setSpacing(5);
 
-    // Create a stacked widget to overlay the color chooser on the board
-    auto *stack = new QStackedWidget(this);
+    // Stacked widget for board and overlay
+    boardStack = new QStackedWidget(this);
     
-    // Create board widget
-    board = new BoardWidget(stack);
+    // Reset button
+    resetButton = new QPushButton("Reset Game", this);
+    resetButton->setFixedSize(160, 45);
+    resetButton->setCursor(Qt::PointingHandCursor);
+    resetButton->setStyleSheet(button_style_sheet);
+}
+
+void GameWidget::setupBoard() {
+    board = new BoardWidget(boardStack);
     board->setGameManager(&gameManager);
     board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
-    connect(board, &BoardWidget::cellSelected, this, [this](int row, int col) {
-        BoardPosition position{row, col};
-        handleHumanMove(position);
-    });
     
-    // Create an overlay widget that contains the color chooser
-    auto *overlayWidget = new QWidget(stack);
+    // Add board to stack
+    boardStack->addWidget(board);
+}
+
+void GameWidget::setupOverlay() {
+    auto *overlayWidget = new QWidget(boardStack);
     overlayWidget->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     overlayWidget->setStyleSheet("background: transparent;");
     
-    // Create color chooser overlay centered in the overlay widget
     colorChooser = new ColorChooserWidget(overlayWidget);
     overlayLayout = new QVBoxLayout(overlayWidget);
     overlayLayout->setContentsMargins(0, 0, 0, 0);
     overlayLayout->addWidget(colorChooser);
     
-    // Add both to the stack
-    stack->addWidget(board);
-    stack->addWidget(overlayWidget);
-    stack->setCurrentIndex(1); // Show overlay initially
-    
-    // Connect color chooser signal
-    connect(colorChooser, &ColorChooserWidget::colorChosen, this, [this, stack](bool playerIsBlack) {
-        stack->setCurrentIndex(0);
-        startGame(playerIsBlack);
-    });
-    
-    mainLayout->addWidget(stack, 1); // take all available space
-    
+    boardStack->addWidget(overlayWidget);
+    boardStack->setCurrentIndex(1); // Show color chooser initially
+}
+
+void GameWidget::setupLayouts() {
+    mainLayout->addWidget(boardStack, 1);
+
+    // Configure button layout
     buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
-    
-    resetButton = new QPushButton("Reset Game", this);
-    resetButton->setFixedSize(160, 45);
-    resetButton->setCursor(Qt::PointingHandCursor);
-    resetButton->setStyleSheet(button_style_sheet);
-
     buttonLayout->addWidget(resetButton);
     buttonLayout->addStretch();
     
-    connect(resetButton, &QPushButton::clicked, this, [this, stack]() {
+    mainLayout->addLayout(buttonLayout);
+}
+
+void GameWidget::setupConnections() {
+    // Connect board cell selection to human move handler
+    connect(board, &BoardWidget::cellSelected, this, [this](int row, int col) {
+        BoardPosition position{row, col};
+        handleHumanMove(position);
+    });
+    
+    // Connect color chooser to game start
+    connect(colorChooser, &ColorChooserWidget::colorChosen, this, [this](bool playerIsBlack) {
+        boardStack->setCurrentIndex(0);
+        startGame(playerIsBlack);
+    });
+    
+    // Connect reset button
+    connect(resetButton, &QPushButton::clicked, this, [this]() {
         gameManager.resetGame();
         board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
-        stack->setCurrentIndex(1);
+        boardStack->setCurrentIndex(1);
     });
-    mainLayout->addLayout(buttonLayout);
 }
 
 void GameWidget::handleHumanMove(const BoardPosition position) {
