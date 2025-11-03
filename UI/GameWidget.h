@@ -36,14 +36,20 @@ private:
     QVBoxLayout *overlayLayout;
     
     void setupConnections();
+    void connectGameManagerSignals();
+    void connectUISignals();
+    void connectResetButton();
+
     void setupLayouts();
     void setupBoard();
     void setupOverlay();
     void initializeComponents();
+    
+signals:
     void handleHumanMove(BoardPosition position);
     void startGame(bool playerIsBlack);
-    void requestAIMove();
     
+private:
     const QString button_style_sheet = "QPushButton {"
             "  background-color: #6B4423;"
             "  color: #FFF8E7;"

@@ -19,18 +19,19 @@ void BoardWidget::paintEvent(QPaintEvent *) {
     drawCriticalPoints(painter);
     drawStones(painter);
 
-    if (boardIsFull) {
+    if (gameManager && gameManager->isBoardFull()) {
         drawWinnerOverlay(painter, "It's a Draw!");
     }
 
-    if (winner != EMPTY) {
-        QString winnerText = (winner == BLACK) ? "Black Wins!" : "White Wins!";
+    if (gameManager && gameManager->winner() != EMPTY) {
+        QString winnerText = (gameManager->winner() == BLACK) ? "Black Wins!" : "White Wins!";
         drawWinnerOverlay(painter, winnerText);
     }
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
-    if (!game || winner != EMPTY || boardIsFull || !game->isHumansTurn()) {
+    if (!gameManager || gameManager->winner() != EMPTY || 
+        gameManager->isBoardFull() || !gameManager->isHumansTurn()) {
         event->ignore();
         return;
     }
@@ -53,8 +54,9 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
+    // Check if position is valid and cell is empty
     BoardPosition position{row, col};
-    if (!game->canPlayAt(position)) {
+    if (!gameManager->canPlayAt(position)) {
         event->ignore();
         return;
     }
@@ -110,15 +112,15 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) const {
 }
 
 void BoardWidget::drawStones(QPainter &painter) const {
-    if (!game) return;
+    if (!gameManager) return;
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            if (game->getCell(row, col) == EMPTY) continue;
+            if (gameManager->getCell(row, col) == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
             const double radius = static_cast<double>(cellSize) / 3 + 1.5;
-            drawStone(painter, QPointF(centerX, centerY), radius, game->getCell(row, col) == BLACK);
+            drawStone(painter, QPointF(centerX, centerY), radius, gameManager->getCell(row, col) == BLACK);
         }
     }
 }

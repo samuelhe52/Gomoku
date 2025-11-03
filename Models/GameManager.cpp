@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <iostream>
 
-GameManager::GameManager() {
+GameManager::GameManager(QObject *parent) : QObject(parent) {
     resetGame();
 }
 
@@ -22,6 +22,32 @@ void GameManager::resetGame() {
     boardManager.resetGame();
     _currentTurn = BLACK;
     _winner = EMPTY;
+}
+
+void GameManager::handleHumanMove(const BoardPosition position) {
+    MoveResult result = playHumanMove(position);
+    if (!result.moveApplied) {
+        return;
+    }
+    
+    emit moveApplied(result);
+    
+    // Automatically trigger AI move if game is still ongoing
+    if (isAITurn() && result.winner == EMPTY && !result.boardIsFull) {
+        MoveResult aiResult = playAIMove();
+        if (aiResult.moveApplied) {
+            emit moveApplied(aiResult);
+        }
+    }
+}
+
+void GameManager::makeAIFirstMove() {
+    if (!isAITurn() || _winner != EMPTY) return;
+    
+    MoveResult result = playAIMove();
+    if (result.moveApplied) {
+        emit moveApplied(result);
+    }
 }
 
 MoveResult GameManager::playHumanMove(const BoardPosition position) {

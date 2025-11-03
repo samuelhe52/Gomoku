@@ -37,7 +37,6 @@ void GameWidget::initializeComponents() {
 void GameWidget::setupBoard() {
     board = new BoardWidget(boardStack);
     board->setGameManager(&gameManager);
-    board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
     
     // Add board to stack
     boardStack->addWidget(board);
@@ -70,55 +69,48 @@ void GameWidget::setupLayouts() {
 }
 
 void GameWidget::setupConnections() {
-    // Connect board cell selection to human move handler
+    connectGameManagerSignals();
+    connectUISignals();
+    connectResetButton();
+}
+
+// Connect signals from GameWidget to GameManager slots
+void GameWidget::connectGameManagerSignals() {
+    connect(this, &GameWidget::handleHumanMove, &gameManager, &GameManager::handleHumanMove);
+    connect(this, &GameWidget::startGame, this, [this](bool playerIsBlack) {
+        const char humanColor = playerIsBlack ? BLACK : WHITE;
+        gameManager.startNewGame(humanColor);
+        board->refresh();
+        
+        // Trigger AI first move if it's AI's turn
+        if (gameManager.isAITurn()) {
+            gameManager.makeAIFirstMove();
+        }
+    });
+
+    // Refresh the board when a move is applied
+    connect(&gameManager, &GameManager::moveApplied, this, [this](MoveResult result) {
+        board->refresh();
+    });
+}
+
+void GameWidget::connectUISignals() {
     connect(board, &BoardWidget::cellSelected, this, [this](int row, int col) {
         BoardPosition position{row, col};
-        handleHumanMove(position);
+        emit handleHumanMove(position);
     });
     
-    // Connect color chooser to game start
+    // Trigger game start
     connect(colorChooser, &ColorChooserWidget::colorChosen, this, [this](bool playerIsBlack) {
         boardStack->setCurrentIndex(0);
-        startGame(playerIsBlack);
+        emit startGame(playerIsBlack);
     });
-    
-    // Connect reset button
+}
+
+void GameWidget::connectResetButton() {
     connect(resetButton, &QPushButton::clicked, this, [this]() {
         gameManager.resetGame();
-        board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
+        board->refresh();
         boardStack->setCurrentIndex(1);
     });
-}
-
-void GameWidget::handleHumanMove(const BoardPosition position) {
-    MoveResult result = gameManager.playHumanMove(position);
-    if (!result.moveApplied) {
-        return;
-    }
-
-    board->updateGameState(result.winner, result.boardIsFull);
-
-    // Immediately request AI move if game is still ongoing
-    if (result.winner == EMPTY && !result.boardIsFull) {
-        requestAIMove();
-    }
-}
-
-void GameWidget::startGame(const bool playerIsBlack) {
-    const char humanColor = playerIsBlack ? BLACK : WHITE;
-    gameManager.startNewGame(humanColor);
-    board->updateGameState(gameManager.winner(), gameManager.isBoardFull());
-
-    if (gameManager.isAITurn()) {
-        requestAIMove();
-    }
-}
-
-void GameWidget::requestAIMove() {
-    if (!gameManager.isAITurn() || gameManager.winner() != EMPTY) return;
-
-    MoveResult result = gameManager.playAIMove();
-    if (!result.moveApplied) return;
-
-    board->updateGameState(result.winner, result.boardIsFull);
 }

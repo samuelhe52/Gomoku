@@ -7,6 +7,7 @@
 
 #include "BoardManager.h"
 #include "GomokuAI.h"
+#include <QObject>
 
 // Summary of a move application, used by the UI to refresh state without
 // re-querying the entire manager.
@@ -17,20 +18,11 @@ struct MoveResult {
     BoardPosition position{-1, -1};
 };
 
-class GameManager {
+class GameManager : public QObject {
+    Q_OBJECT
+    
 public:
-    GameManager();
-
-    // Configure the player colors and reset to a fresh game.
-    void startNewGame(char humanColor);
-    // Clear the board while keeping the configured colors.
-    void resetGame();
-
-    // Attempt to place a human move; returns MoveResult with outcome details.
-    MoveResult playHumanMove(BoardPosition position);
-    // Execute an AI move for the current position; caller must ensure it is
-    // the AI's turn.
-    MoveResult playAIMove();
+    explicit GameManager(QObject *parent = nullptr);
 
     // Turn helpers for UI flow control.
     [[nodiscard]] bool isHumansTurn() const { return _currentTurn == _humanColor; }
@@ -47,7 +39,24 @@ public:
     [[nodiscard]] bool isBoardFull() const { return boardManager.isBoardFull(); }
     [[nodiscard]] bool isBoardEmpty() const { return boardManager.isBoardEmpty(); }
 
+public slots:
+    // Configure the player colors and reset to a fresh game.
+    void startNewGame(char humanColor);
+    // Clear the board while keeping the configured colors.
+    void resetGame();
+
+    // Attempt to place a human move; automatically triggers AI move if game continues.
+    void handleHumanMove(BoardPosition position);
+    
+    // Trigger AI to make the first move (call after startNewGame if AI goes first)
+    void makeAIFirstMove();
+
+signals:
+    void moveApplied(MoveResult result);
+
 private:
+    MoveResult playHumanMove(BoardPosition position);
+    MoveResult playAIMove();
     MoveResult applyMove(BoardPosition position);
 
     BoardManager boardManager;

@@ -17,14 +17,12 @@ class BoardWidget : public QWidget {
 
 public:
     explicit BoardWidget(QWidget *parent = nullptr);
-    // Attach the shared GameManager instance driving the board state.
-    void setGameManager(GameManager *manager) { game = manager; }
-    // Sync winner/full-board flags and trigger repaint after a model update.
-    void updateGameState(char newWinner, bool boardFull) {
-        winner = newWinner;
-        boardIsFull = boardFull;
-        update();
-    }
+    
+    // Attach the GameManager to query for board state
+    void setGameManager(const GameManager *manager) { gameManager = manager; }
+    
+    // Trigger a repaint 
+    void refresh() { update(); }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -32,24 +30,22 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
 
 signals:
-    // Emitted when the player clicks a valid intersection; UI owns move logic.
+    // Emitted when the player clicks a valid intersection
     void cellSelected(int row, int col);
 
 private:
-    GameManager *game = nullptr;
+    const GameManager *gameManager = nullptr;
 
     [[nodiscard]] int boardCellSize() const;
 
     const int borderWidth = 3;
     const int linesWidth = 2;
 
-    // Cached layout values (calculated per paint event)
+    // Cached layout values 
     int cellSize = 0;
     int borderSize = 0;
     int startX = 0;
     int startY = 0;
-    char winner = EMPTY; // EMPTY if no winner, BLACK if black wins, WHITE if white wins
-    bool boardIsFull = false;
     // Dark yellow background
     const QColor bgColor = QColor(218, 160, 108);
 
