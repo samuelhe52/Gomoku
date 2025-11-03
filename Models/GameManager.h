@@ -8,6 +8,7 @@
 #include "BoardManager.h"
 #include "GomokuAI.h"
 #include <QObject>
+#include <QTimer>
 
 // Summary of a move application, used by the UI to refresh state without
 // re-querying the entire manager.

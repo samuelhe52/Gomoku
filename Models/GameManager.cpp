@@ -32,12 +32,14 @@ void GameManager::handleHumanMove(const BoardPosition position) {
     
     emit moveApplied(result);
     
-    // Automatically trigger AI move if game is still ongoing
+    // Defer AI move to allow UI to update first
     if (isAITurn() && result.winner == EMPTY && !result.boardIsFull) {
-        MoveResult aiResult = playAIMove();
-        if (aiResult.moveApplied) {
-            emit moveApplied(aiResult);
-        }
+        QTimer::singleShot(1, this, [this]() {
+            MoveResult aiResult = playAIMove();
+            if (aiResult.moveApplied) {
+                emit moveApplied(aiResult);
+            }
+        });
     }
 }
 
