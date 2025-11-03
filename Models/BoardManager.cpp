@@ -17,6 +17,13 @@ void BoardManager::resetGame() {
     _blackTurn = true;
     movesHistory.clear();
     candidateMovesCache.clear();
+    // Reset candidate map
+    for (auto &row : candidateMap) {
+        std::fill(std::begin(row), std::end(row), false);
+    }
+    // Reserve capacity to avoid rehashing during game
+    // Average game has ~50-100 moves, with radius 2, expect ~20-40 candidates
+    candidateMovesCache.reserve(64);
 }
 
 void BoardManager::_makeMove(BoardPosition position) {
@@ -59,11 +66,13 @@ void BoardManager::reverseCandidatesCache(const CandidatesDelta& delta, BoardPos
     // Remove all candidates that were added for this move
     for (const auto& candidate : delta.addedCandidates) {
         candidateMovesCache.erase(candidate);
+        candidateMap[candidate.row][candidate.col] = false;  // Update map
     }
     
     // If this position was in the cache before the move, add it back
     if (delta.removedFromCache) {
         candidateMovesCache.insert(moveUndone);
+        candidateMap[moveUndone.row][moveUndone.col] = true;  // Update map
     }
 }
 
@@ -144,20 +153,43 @@ BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
 ) {
     CandidatesDelta lastRecord;
     
-    // Check if this position was already in the cache
-    lastRecord.removedFromCache = candidateMovesCache.count(pos) > 0;
-
-    // Remove the move position from cache (it's now occupied)
+    // Check using the fast boolean array instead of hash lookup
+    lastRecord.removedFromCache = candidateMap[pos.row][pos.col];
+    
+    // Remove from both structures
     candidateMovesCache.erase(pos);
+    candidateMap[pos.row][pos.col] = false;
 
-    // Add new candidates around the move and track them
-    for (const auto& newPos : candidatesAround(pos, candidateRadius)) {
-        // Only track truly new candidates (not already in cache)
-        if (candidateMovesCache.count(newPos) == 0) {
-            lastRecord.addedCandidates.insert(newPos);
-            candidateMovesCache.insert(newPos);
+    // Pre-calculate bounds to avoid repeated boundary checks
+    const int minRow = std::max(0, pos.row - candidateRadius);
+    const int maxRow = std::min(BOARD_SIZE - 1, pos.row + candidateRadius);
+    const int minCol = std::max(0, pos.col - candidateRadius);
+    const int maxCol = std::min(BOARD_SIZE - 1, pos.col + candidateRadius);
+
+    // Pre-allocate space for added candidates to avoid reallocation
+    lastRecord.addedCandidates.reserve((2 * candidateRadius + 1) * (2 * candidateRadius + 1));
+
+    // OPTIMIZATION: First collect all new candidates, then batch insert
+    // This reduces hash table operations significantly
+    for (int newRow = minRow; newRow <= maxRow; ++newRow) {
+        for (int newCol = minCol; newCol <= maxCol; ++newCol) {
+            // Skip the center position and occupied cells
+            if ((newRow == pos.row && newCol == pos.col) || board[newRow][newCol] != EMPTY) {
+                continue;
+            }
+            
+            if (!candidateMap[newRow][newCol]) {
+                BoardPosition newPos{newRow, newCol};
+                lastRecord.addedCandidates.push_back(newPos);
+                candidateMap[newRow][newCol] = true;
+            }
         }
     }
+    
+    // Batch insert all new candidates at once to minimize hash table overhead
+    candidateMovesCache.insert(lastRecord.addedCandidates.begin(), 
+                               lastRecord.addedCandidates.end());
+    
     return lastRecord;
 }
 

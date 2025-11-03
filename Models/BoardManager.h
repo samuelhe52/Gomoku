@@ -9,7 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
-#include <set>
+#include <unordered_set>
 
 struct BoardPosition {
     int row;
@@ -34,6 +34,18 @@ struct BoardPosition {
     }
 };
 
+// Hash function for BoardPosition to enable use with unordered_set
+namespace std {
+    template <>
+    struct hash<BoardPosition> {
+        size_t operator()(const BoardPosition& pos) const noexcept {
+            // Optimized hash: use bit shifting for better distribution
+            // Since BOARD_SIZE is 15, we can pack row and col into a single value
+            return (static_cast<size_t>(pos.row) << 4) | static_cast<size_t>(pos.col);
+        }
+    };
+}
+
 class BoardManager {
 public:
     BoardManager();
@@ -47,15 +59,15 @@ public:
     // Returns EMPTY if no winner, BLACK if black wins, WHITE if white wins
     [[nodiscard]] char checkWinner() const;
 
-    [[nodiscard]] char getCell(const int row, const int col) const { return board[row][col]; }
-    [[nodiscard]] char getCell(const BoardPosition position) const { return board[position.row][position.col]; }
+    [[nodiscard]] inline char getCell(const int row, const int col) const { return board[row][col]; }
+    [[nodiscard]] inline char getCell(const BoardPosition position) const { return board[position.row][position.col]; }
     [[nodiscard]] bool isValidMove(BoardPosition position) const;
 
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
     
-    // Check if placing a piece at position would win for the given player
-    [[nodiscard]] std::set<BoardPosition> getCandidateMoves() const {
+    // Return by const reference to avoid copying the entire set
+    [[nodiscard]] const std::unordered_set<BoardPosition>& getCandidateMoves() const {
         return candidateMovesCache;
     }
 
@@ -73,13 +85,16 @@ private:
 
     // Keep track of moves for undo and win checking with cache information
     struct CandidatesDelta {
-        std::set<BoardPosition> addedCandidates;
+        std::vector<BoardPosition> addedCandidates;  // Changed to vector for better cache locality
         bool removedFromCache;
     };
 
-    std::set<BoardPosition> candidateMovesCache;
+    // Dual data structure approach for O(1) lookups and fast iteration
+    std::unordered_set<BoardPosition> candidateMovesCache;
+    bool candidateMap[BOARD_SIZE][BOARD_SIZE] = {{false}};  // Fast O(1) lookup array
+    
     CandidatesDelta updateCandidatesCache(BoardPosition pos, char player);
-    std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;
+    [[nodiscard]] std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;
     void reverseCandidatesCache(const CandidatesDelta& delta, BoardPosition moveUndone);
     const int candidateRadius = MAX_CANDIDATE_RADIUS;
 
