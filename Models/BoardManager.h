@@ -34,13 +34,11 @@ struct BoardPosition {
     }
 };
 
-// Hash function for BoardPosition to enable use with unordered_set
 namespace std {
     template <>
     struct hash<BoardPosition> {
         size_t operator()(const BoardPosition& pos) const noexcept {
             // Optimized hash: use bit shifting for better distribution
-            // Since BOARD_SIZE is 15, we can pack row and col into a single value
             return (static_cast<size_t>(pos.row) << 4) | static_cast<size_t>(pos.col);
         }
     };
@@ -66,7 +64,7 @@ public:
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
     
-    // Return by const reference to avoid copying the entire set
+    // Return by const reference
     [[nodiscard]] const std::unordered_set<BoardPosition>& getCandidateMoves() const {
         return candidateMovesCache;
     }
@@ -89,9 +87,9 @@ private:
         bool removedFromCache;
     };
 
-    // Dual data structure approach for O(1) lookups and fast iteration
+    // O(1) lookups and fast insertion/deletion
     std::unordered_set<BoardPosition> candidateMovesCache;
-    bool candidateMap[BOARD_SIZE][BOARD_SIZE] = {{false}};  // Fast O(1) lookup array
+    bool candidateMap[BOARD_SIZE][BOARD_SIZE] = {{false}};
     
     CandidatesDelta updateCandidatesCache(BoardPosition pos, char player);
     [[nodiscard]] std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;

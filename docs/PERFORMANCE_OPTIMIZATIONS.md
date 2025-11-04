@@ -5,27 +5,28 @@ This document describes the performance bottlenecks identified in the `candidate
 
 ## Identified Bottlenecks
 
-### 1. **Redundant `count()` Calls Before Operations**
-**Problem:** The code was calling `count()` to check existence, then calling `insert()` or `erase()`.
+### 1. **Hash Lookups for Existence Checks (Major Bottleneck)**
+**Problem:** Using `count()` or hash table lookups to check if a candidate already exists in the cache during the hot loop.
 ```cpp
-// OLD - 2 hash lookups
-if (candidateMovesCache.count(pos) == 0) {
-    candidateMovesCache.insert(pos);
+// OLD - hash computation + table lookup every iteration
+if (candidateMovesCache.count(newPos) == 0) {
+    candidateMovesCache.insert(newPos);
 }
 ```
 
-**Solution:** Use the return value of `insert()` and `erase()` directly.
+**Solution:** Use a parallel boolean array for O(1) guaranteed lookups. Also batch insert candidates for a small additional gain.
 ```cpp
-// NEW - 1 hash lookup
-auto [it, inserted] = candidateMovesCache.insert(pos);
-if (inserted) { /* ... */ }
-
-// For erase
-size_t removed = candidateMovesCache.erase(pos);
-if (removed > 0) { /* ... */ }
+// NEW - simple array access, no hashing needed
+if (!candidateMap[newRow][newCol]) {
+    lastRecord.addedCandidates.push_back(newPos);
+    candidateMap[newRow][newCol] = true;
+}
+// After loop: batch insert (minor additional optimization)
+candidateMovesCache.insert(lastRecord.addedCandidates.begin(), 
+                           lastRecord.addedCandidates.end());
 ```
 
-**Impact:** ~50% reduction in hash table lookups during cache updates.
+**Impact:** The boolean array eliminated the critical bottleneck by replacing hash lookups with direct array access. Batch insertion provides a small additional improvement.
 
 ---
 
@@ -117,19 +118,20 @@ candidateMovesCache.reserve(64);
 
 ## Performance Improvements Summary
 
-| Optimization | Expected Improvement |
-|-------------|---------------------|
-| Eliminate redundant `count()` | ~50% fewer hash lookups |
+| Optimization | Impact |
+|-------------|--------|
+| **Boolean array for lookups** | **Major improvement** - Eliminates hash overhead in tight loop |
+| Batch insert | Minor additional gain |
 | Return by reference | Eliminates O(n) copies in minimax |
 | Inline candidate generation | No vector allocations per move |
 | Pre-calculate bounds | Fewer arithmetic ops in loops |
-| Optimized hash function | ~3-5x faster hashing |
-| Reserve capacity | Avoids 3-4 rehashes per game |
+| Optimized hash function | Faster hash computation |
+| Reserve capacity | Avoids rehashing during game |
 
-**Overall Expected Impact:** 
-- **40-60% reduction** in cache operation time
-- **20-30% improvement** in overall AI move calculation speed
-- Especially noticeable in deeper minimax searches (depth 4-6)
+**Overall Impact:**
+- Significant reduction in cache operation time
+- Noticeable improvement in AI move calculation speed
+- Most beneficial in deeper minimax searches (depth 4-6)
 
 ---
 
