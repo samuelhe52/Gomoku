@@ -49,7 +49,7 @@ board->refresh();  // Qt sees BoardWidget already needs painting
 ## The Problem We Encountered
 
 ### Issue
-When a human made a move in Gomoku, only the AI's response appeared on the board. The human's move seemed to be skipped.
+When a human makes a move, it only appears on the board after the AI responds.
 
 ### Root Cause
 
@@ -97,52 +97,6 @@ void GameManager::handleHumanMove(const BoardPosition position) {
     }
 }
 ```
-
-**Why `QTimer::singleShot(0, ...)` didn't work:**
-
-Using a 0ms delay schedules the callback for the next event loop iteration, but Qt's paint event system is also deferred. Even though the paint event was queued, Qt might not have processed it by the time the timer callback runs with 0ms delay. The events might still be processed in the same batch.
-
-**Solution:** Use a small non-zero delay (1-10ms) to ensure the paint event has time to be processed before the AI move starts.
-
-**Event timeline (AFTER fix with 1ms delay):**
-
-1. Human move applied
-2. `emit moveApplied(humanResult)` → `board->refresh()` adds paint event
-3. `QTimer::singleShot(1, ...)` schedules timer callback for ~1ms from now
-4. Function returns
-5. Event loop processes paint event → **Human move visible** ✓
-6. ~1ms passes (enough time for painting to complete)
-7. Timer callback fires → AI calculates and applies move
-8. `emit moveApplied(aiResult)` → Another paint event added
-9. Event loop processes paint event → **AI move visible** ✓
-
-## QTimer::singleShot Explained
-
-```cpp
-QTimer::singleShot(delayMs, contextObject, callback);
-```
-
-**Parameters:**
-- `delayMs`: Delay in milliseconds before callback executes
-- `contextObject`: If this object is deleted, the callback is cancelled (prevents crashes)
-- `callback`: Lambda or function to execute
-
-**Why a small delay (1-10ms) is needed:**
-
-A 0ms delay only guarantees the callback runs in the next event loop iteration, but doesn't guarantee paint events have been processed. Qt's event system processes multiple events per iteration, and paint events might be batched together.
-
-A small non-zero delay (1-10ms) gives the UI thread enough time to:
-1. Process the paint event
-2. Actually render the widget to screen
-3. Complete before the AI calculation starts
-
-**Event Queue with `singleShot(1)`:**
-```
-[Paint BoardWidget] → [Render] → ... → [Timer Callback: AI move] → [Paint BoardWidget] → ...
-      ↑ Processed first            ↑ ~1ms later              ↑ Processed after AI move
-```
-
-This introduces a barely noticeable delay (1-10ms is imperceptible to users) but ensures smooth visual feedback.
 
 ## Best Practices
 
