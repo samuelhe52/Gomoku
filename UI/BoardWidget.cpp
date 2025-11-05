@@ -4,7 +4,9 @@
 
 #include "BoardWidget.h"
 
-BoardWidget::BoardWidget(QWidget *parent) : QWidget(parent) {}
+BoardWidget::BoardWidget(QWidget *parent) : QWidget(parent) {
+    resetSnapshot();
+}
 
 void BoardWidget::paintEvent(QPaintEvent *) {
     QPainter painter(this);
@@ -19,22 +21,17 @@ void BoardWidget::paintEvent(QPaintEvent *) {
     drawCriticalPoints(painter);
     drawStones(painter);
 
-    if (gameManager && gameManager->isBoardFull()) {
+    if (boardFullSnapshot) {
         drawWinnerOverlay(painter, "It's a Draw!");
     }
 
-    if (gameManager && gameManager->winner() != EMPTY) {
-        QString winnerText = (gameManager->winner() == BLACK) ? "Black Wins!" : "White Wins!";
+    if (winnerSnapshot != EMPTY) {
+        QString winnerText = (winnerSnapshot == BLACK) ? "Black Wins!" : "White Wins!";
         drawWinnerOverlay(painter, winnerText);
     }
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
-    if (!gameManager || gameManager->winner() != EMPTY || 
-        gameManager->isBoardFull() || !gameManager->isHumansTurn()) {
-        event->ignore();
-        return;
-    }
     if (event->button() != Qt::LeftButton) {
         // Propagate the event if it's not a left click
         QWidget::mousePressEvent(event);
@@ -47,6 +44,10 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
 
     const int col = static_cast<int>((x - startX + cellSize / 2) / cellSize);
     const int row = static_cast<int>((y - startY + cellSize / 2) / cellSize);
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
+        event->ignore();
+        return;
+    }
     const int targetX = startX + col * cellSize;
     const int targetY = startY + row * cellSize;
     if (abs(x - targetX) > cellSize / 2.5 || abs(y - targetY) > cellSize / 2.5) {
@@ -54,13 +55,7 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
         return;
     }
 
-    // Check if position is valid and cell is empty
     BoardPosition position{row, col};
-    if (!gameManager->canPlayAt(position)) {
-        event->ignore();
-        return;
-    }
-
     emit cellSelected(position.row, position.col);
     event->accept();
 }
@@ -112,15 +107,13 @@ void BoardWidget::drawCriticalPoints(QPainter &painter) const {
 }
 
 void BoardWidget::drawStones(QPainter &painter) const {
-    if (!gameManager) return;
-
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            if (gameManager->getCell(row, col) == EMPTY) continue;
+            if (boardSnapshot[row][col] == EMPTY) continue;
             const int centerX = startX + col * cellSize;
             const int centerY = startY + row * cellSize;
             const double radius = static_cast<double>(cellSize) / 3 + 1.5;
-            drawStone(painter, QPointF(centerX, centerY), radius, gameManager->getCell(row, col) == BLACK);
+            drawStone(painter, QPointF(centerX, centerY), radius, boardSnapshot[row][col] == BLACK);
         }
     }
 }
@@ -193,4 +186,24 @@ int BoardWidget::boardCellSize() const {
     const int verticalCellSize = width() / BOARD_SIZE;
     const int horizontalCellSize = height() / BOARD_SIZE;
     return std::min(verticalCellSize, horizontalCellSize);
+}
+
+void BoardWidget::onMoveApplied(MoveResult result) {
+    if (result.moveApplied && result.position.row >= 0 && result.position.col >= 0) {
+        boardSnapshot[result.position.row][result.position.col] = result.placedColor;
+    }
+    winnerSnapshot = result.winner;
+    boardFullSnapshot = result.boardIsFull;
+    update();
+}
+
+void BoardWidget::resetSnapshot() {
+    for (int r = 0; r < BOARD_SIZE; ++r) {
+        for (int c = 0; c < BOARD_SIZE; ++c) {
+            boardSnapshot[r][c] = EMPTY;
+        }
+    }
+    winnerSnapshot = EMPTY;
+    boardFullSnapshot = false;
+    update();
 }

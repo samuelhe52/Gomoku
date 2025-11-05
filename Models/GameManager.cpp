@@ -16,6 +16,10 @@ void GameManager::startNewGame(const char humanColor) {
     _aiColor = (humanColor == BLACK) ? WHITE : BLACK;
     GomokuAI::setColor(_aiColor);
     resetGame();
+    // If AI goes first, make the first move
+    if (isAITurn()) {
+        makeAIFirstMove();
+    }
 }
 
 void GameManager::resetGame() {
@@ -32,14 +36,11 @@ void GameManager::handleHumanMove(const BoardPosition position) {
     
     emit moveApplied(result);
     
-    // Defer AI move to allow UI to update first
     if (isAITurn() && result.winner == EMPTY && !result.boardIsFull) {
-        QTimer::singleShot(1, this, [this]() {
-            MoveResult aiResult = playAIMove();
-            if (aiResult.moveApplied) {
-                emit moveApplied(aiResult);
-            }
-        });
+        MoveResult aiResult = playAIMove();
+        if (aiResult.moveApplied) {
+            emit moveApplied(aiResult);
+        }
     }
 }
 
@@ -86,8 +87,10 @@ MoveResult GameManager::applyMove(const BoardPosition position) {
     MoveResult result;
     result.position = position;
 
+    const char placed = _currentTurn;
     const char moveWinner = boardManager.makeMove(position);
     result.moveApplied = true;
+    result.placedColor = placed;
     _currentTurn = (_currentTurn == BLACK) ? WHITE : BLACK;
 
     if (moveWinner != EMPTY) {

@@ -3,13 +3,35 @@
 //
 
 #include "GameWidget.h"
+#include <QMetaType>
 
 GameWidget::GameWidget(QWidget *parent) : QWidget(parent) {
+    setupGameManager();
     initializeComponents();
     setupBoard();
     setupOverlay();
     setupLayouts();
-    setupConnections();
+    setupUISignals();
+}
+GameWidget::~GameWidget() {
+    // Clean up the game thread
+    if (gameThread) {
+        gameThread->quit();
+        gameThread->wait();
+    }
+}
+
+void GameWidget::setupGameManager() {
+    // Move GameManager to a separate thread
+    gameManager = new GameManager();
+    gameThread = new QThread(this);
+    gameManager->moveToThread(gameThread);
+    // Ensure MoveResult can be delivered across threads
+    qRegisterMetaType<MoveResult>("MoveResult");
+    connectGameManagerSignals();
+    connect(gameThread, &QThread::finished, gameManager, &QObject::deleteLater);
+    connect(gameThread, &QThread::finished, gameThread, &QObject::deleteLater);
+    gameThread->start();
 }
 
 void GameWidget::initializeComponents() {
@@ -36,10 +58,12 @@ void GameWidget::initializeComponents() {
 
 void GameWidget::setupBoard() {
     board = new BoardWidget(boardStack);
-    board->setGameManager(&gameManager);
     
     // Add board to stack
     boardStack->addWidget(board);
+
+    // Connect after board exists
+    connect(gameManager, &GameManager::moveApplied, board, &BoardWidget::onMoveApplied);
 }
 
 void GameWidget::setupOverlay() {
@@ -68,29 +92,20 @@ void GameWidget::setupLayouts() {
     mainLayout->addLayout(buttonLayout);
 }
 
-void GameWidget::setupConnections() {
-    connectGameManagerSignals();
+void GameWidget::setupUISignals() {
     connectUISignals();
     connectResetButton();
 }
 
 // Connect signals from GameWidget to GameManager slots
 void GameWidget::connectGameManagerSignals() {
-    connect(this, &GameWidget::handleHumanMove, &gameManager, &GameManager::handleHumanMove);
+    connect(this, &GameWidget::handleHumanMove, gameManager, &GameManager::handleHumanMove);
     connect(this, &GameWidget::startGame, this, [this](bool playerIsBlack) {
         const char humanColor = playerIsBlack ? BLACK : WHITE;
-        gameManager.startNewGame(humanColor);
-        board->refresh();
-        
-        // Trigger AI first move if it's AI's turn
-        if (gameManager.isAITurn()) {
-            gameManager.makeAIFirstMove();
-        }
-    });
-
-    // Refresh the board when a move is applied
-    connect(&gameManager, &GameManager::moveApplied, this, [this](MoveResult result) {
-        board->refresh();
+        board->resetSnapshot();
+        QMetaObject::invokeMethod(gameManager, [gm = gameManager, humanColor]() {
+            gm->startNewGame(humanColor);
+        }, Qt::QueuedConnection);
     });
 }
 
@@ -109,8 +124,8 @@ void GameWidget::connectUISignals() {
 
 void GameWidget::connectResetButton() {
     connect(resetButton, &QPushButton::clicked, this, [this]() {
-        gameManager.resetGame();
-        board->refresh();
+        QMetaObject::invokeMethod(gameManager, &GameManager::resetGame, Qt::QueuedConnection);
+        board->resetSnapshot();
         boardStack->setCurrentIndex(1);
     });
 }

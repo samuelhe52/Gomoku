@@ -13,9 +13,10 @@ BoardPosition GomokuAI::getBestMove(BoardManager &boardManager) {
         return {BOARD_SIZE / 2, BOARD_SIZE / 2}; // Start in the center
     }
 
-    return minimaxAlphaBeta(boardManager, MAX_DEPTH, true, getColor(),
-                                   std::numeric_limits<int>::min(),
-                                   std::numeric_limits<int>::max()).second;
+    BoardManager simulatedBoard = boardManager;
+    return minimaxAlphaBeta(simulatedBoard, MAX_DEPTH, true, getColor(),
+                            std::numeric_limits<int>::min(),
+                            std::numeric_limits<int>::max()).second;
 }
 
 BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {

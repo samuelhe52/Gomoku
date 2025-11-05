@@ -9,6 +9,7 @@
 #include "GomokuAI.h"
 #include <QObject>
 #include <QTimer>
+#include <QMetaType>
 
 // Summary of a move application, used by the UI to refresh state without
 // re-querying the entire manager.
@@ -17,7 +18,10 @@ struct MoveResult {
     char winner = EMPTY;
     bool boardIsFull = false;
     BoardPosition position{-1, -1};
+    char placedColor = EMPTY;
 };
+
+Q_DECLARE_METATYPE(MoveResult)
 
 class GameManager : public QObject {
     Q_OBJECT

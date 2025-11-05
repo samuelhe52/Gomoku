@@ -18,9 +18,6 @@ class BoardWidget : public QWidget {
 public:
     explicit BoardWidget(QWidget *parent = nullptr);
     
-    // Attach the GameManager to query for board state
-    void setGameManager(const GameManager *manager) { gameManager = manager; }
-    
     // Trigger a repaint 
     void refresh() { update(); }
 
@@ -33,8 +30,14 @@ signals:
     // Emitted when the player clicks a valid intersection
     void cellSelected(int row, int col);
 
+public slots:
+    void onMoveApplied(MoveResult result);
+    void resetSnapshot();
+
 private:
-    const GameManager *gameManager = nullptr;
+    char boardSnapshot[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
+    char winnerSnapshot = EMPTY;
+    bool boardFullSnapshot = false;
 
     [[nodiscard]] int boardCellSize() const;
 

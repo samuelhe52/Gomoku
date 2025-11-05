@@ -13,16 +13,19 @@
 #include <QBoxLayout>
 #include <QPainter>
 #include <QStackedWidget>
+#include <QThread>
 
 class GameWidget : public QWidget {
     Q_OBJECT
     
 public:
     explicit GameWidget(QWidget *parent = nullptr);
+    ~GameWidget() override;
     
 private:
     // Model
-    GameManager gameManager;
+    GameManager *gameManager;
+    QThread *gameThread = nullptr;
 
     // UI Components
     BoardWidget *board;
@@ -35,7 +38,8 @@ private:
     QBoxLayout *buttonLayout;
     QVBoxLayout *overlayLayout;
     
-    void setupConnections();
+    void setupGameManager();
+    void setupUISignals();
     void connectGameManagerSignals();
     void connectUISignals();
     void connectResetButton();
