@@ -49,7 +49,8 @@ private:
 
     [[nodiscard]] static bool isInsideBoard(int row, int col);
     [[nodiscard]] static int sequenceScore(int length, int openSides);
-    [[nodiscard]] static SequenceSummary evaluateSequences(const BoardManager& boardManager, char player);
+    [[nodiscard]] static std::pair<SequenceSummary, SequenceSummary> 
+        evaluateSequences(const BoardManager& boardManager);
     [[nodiscard]] static int centerControlBias(const BoardManager& boardManager, char player);
 
     // minimax with alpha-beta pruning. Returns a pair of (score, best move)

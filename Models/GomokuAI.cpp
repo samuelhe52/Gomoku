@@ -94,7 +94,9 @@ bool GomokuAI::posesThreat(const BoardManager& boardManager,
         int forwardCol = position.col + dir[1];
         while (forwardRow >= 0 && forwardRow < BOARD_SIZE &&
                forwardCol >= 0 && forwardCol < BOARD_SIZE &&
-               boardManager.getCell(forwardRow, forwardCol) == player) {
+               boardManager.getCell(forwardRow, forwardCol) == player &&
+               count < 5 // Winning condition is handled by wouldWin()
+            ) {
             count++;
             forwardRow += dir[0];
             forwardCol += dir[1];
@@ -104,14 +106,12 @@ bool GomokuAI::posesThreat(const BoardManager& boardManager,
         int backwardCol = position.col - dir[1];
         while (backwardRow >= 0 && backwardRow < BOARD_SIZE &&
                backwardCol >= 0 && backwardCol < BOARD_SIZE &&
-               boardManager.getCell(backwardRow, backwardCol) == player) {
+               boardManager.getCell(backwardRow, backwardCol) == player &&
+               count < 5
+            ) {
             count++;
             backwardRow -= dir[0];
             backwardCol -= dir[1];
-        }
-
-        if (count > 4) {
-            continue; // This move is a direct win, handled by wouldWin
         }
 
         const bool forwardOpen = forwardRow >= 0 && forwardRow < BOARD_SIZE &&
@@ -135,7 +135,6 @@ bool GomokuAI::posesThreat(const BoardManager& boardManager,
 
 
 std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
-    std::vector<BoardPosition> prioritizedMoves;
     std::vector<BoardPosition> threatMoves;
     std::vector<BoardPosition> moves;
 
@@ -143,17 +142,13 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
         if (wouldWin(boardManager, pos, color) ||
             wouldWin(boardManager, pos, getOpponent(color))) {
             // Prioritize immediate winning/blocking moves
-            prioritizedMoves.push_back(pos);
+            return {pos};
         } else if (posesThreat(boardManager, pos, color) ||
                    posesThreat(boardManager, pos, getOpponent(color))) {
             threatMoves.push_back(pos);
         } else {
             moves.push_back(pos);
         }
-    }
-
-    if (!prioritizedMoves.empty()) {
-        return prioritizedMoves;
     }
 
     // Prefer center control 
@@ -203,7 +198,8 @@ int GomokuAI::sequenceScore(const int length, const int openSides) {
     }
 }
 
-GomokuAI::SequenceSummary GomokuAI::evaluateSequences(const BoardManager& boardManager, const char player) {
+std::pair<GomokuAI::SequenceSummary, GomokuAI::SequenceSummary> 
+GomokuAI::evaluateSequences(const BoardManager& boardManager) {
     const int directions[4][2] = {
         {0, 1},
         {1, 0},
@@ -211,66 +207,79 @@ GomokuAI::SequenceSummary GomokuAI::evaluateSequences(const BoardManager& boardM
         {1, -1}
     };
 
-    SequenceSummary summary;
+    SequenceSummary playerSummary;
+    SequenceSummary opponentSummary;
 
-    for (int row = 0; row < BOARD_SIZE; ++row) {
-        for (int col = 0; col < BOARD_SIZE; ++col) {
-            if (boardManager.getCell(row, col) != player) {
+    auto evaluateForPlayer = [&](
+        const char player,
+        SequenceSummary& summary,
+        const int row,
+        const int col
+    ) {
+        if (boardManager.getCell(row, col) != player) {
+            return;
+        }
+
+        for (const auto& dir : directions) {
+            const int prevRow = row - dir[0];
+            const int prevCol = col - dir[1];
+
+            if (isInsideBoard(prevRow, prevCol) &&
+                boardManager.getCell(prevRow, prevCol) == player) {
+                continue; // Already counted as part of a preceding segment
+            }
+
+            int length = 1;
+            int nextRow = row + dir[0];
+            int nextCol = col + dir[1];
+
+            while (
+                isInsideBoard(nextRow, nextCol) &&
+                boardManager.getCell(nextRow, nextCol) == player
+            ) {
+                ++length;
+                nextRow += dir[0];
+                nextCol += dir[1];
+            }
+
+            const bool openStart = isInsideBoard(prevRow, prevCol) && 
+                                    boardManager.getCell(prevRow, prevCol) == EMPTY;
+            const bool openEnd = isInsideBoard(nextRow, nextCol) &&
+                                    boardManager.getCell(nextRow, nextCol) == EMPTY;
+            const int openSides = static_cast<int>(openStart) + static_cast<int>(openEnd);
+            summary.score += sequenceScore(length, openSides);
+
+            if (length >= 5) {
+                if (openSides > 0) {
+                    summary.openFours += 1;
+                }
                 continue;
             }
 
-            for (const auto& dir : directions) {
-                const int prevRow = row - dir[0];
-                const int prevCol = col - dir[1];
-
-                if (isInsideBoard(prevRow, prevCol) &&
-                    boardManager.getCell(prevRow, prevCol) == player) {
-                    continue; // Already counted as part of a preceding segment
+            if (length == 4) {
+                if (openSides == 2) {
+                    summary.openFours += 1;
+                } else if (openSides == 1) {
+                    summary.semiOpenFours += 1;
                 }
-
-                int length = 1;
-                int nextRow = row + dir[0];
-                int nextCol = col + dir[1];
-
-                while (isInsideBoard(nextRow, nextCol) &&
-                       boardManager.getCell(nextRow, nextCol) == player) {
-                    ++length;
-                    nextRow += dir[0];
-                    nextCol += dir[1];
-                }
-
-                const bool openStart = isInsideBoard(prevRow, prevCol) && 
-                                        boardManager.getCell(prevRow, prevCol) == EMPTY;
-                const bool openEnd = isInsideBoard(nextRow, nextCol) &&
-                                        boardManager.getCell(nextRow, nextCol) == EMPTY;
-                const int openSides = static_cast<int>(openStart) + static_cast<int>(openEnd);
-                summary.score += sequenceScore(length, openSides);
-
-                if (length >= 5) {
-                    if (openSides > 0) {
-                        summary.openFours += 1;
-                    }
-                    continue;
-                }
-
-                if (length == 4) {
-                    if (openSides == 2) {
-                        summary.openFours += 1;
-                    } else if (openSides == 1) {
-                        summary.semiOpenFours += 1;
-                    }
-                } else if (length == 3) {
-                    if (openSides == 2) {
-                        summary.openThrees += 1;
-                    } else if (openSides == 1) {
-                        summary.semiOpenThrees += 1;
-                    }
+            } else if (length == 3) {
+                if (openSides == 2) {
+                    summary.openThrees += 1;
+                } else if (openSides == 1) {
+                    summary.semiOpenThrees += 1;
                 }
             }
         }
+    };
+
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            evaluateForPlayer(color, playerSummary, row, col);
+            evaluateForPlayer(getOpponent(color), opponentSummary, row, col);
+        }
     }
 
-    return summary;
+    return {playerSummary, opponentSummary};
 }
 
 int GomokuAI::centerControlBias(const BoardManager& boardManager, const char player) {
@@ -294,8 +303,7 @@ int GomokuAI::centerControlBias(const BoardManager& boardManager, const char pla
 
 int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
     const char opponent = getOpponent(player);
-    const SequenceSummary playerSummary = evaluateSequences(boardManager, player);
-    const SequenceSummary opponentSummary = evaluateSequences(boardManager, opponent);
+    const auto [playerSummary, opponentSummary] = evaluateSequences(boardManager);
 
     if (playerSummary.openFours > 0) {
         return 400000 + playerSummary.openFours * 2000;
