@@ -6,9 +6,9 @@
 #include <QMetaType>
 
 GameWidget::GameWidget(QWidget *parent) : QWidget(parent) {
-    setupGameManager();
     initializeComponents();
     setupBoard();
+    setupGameManager();
     setupOverlay();
     setupLayouts();
     setupUISignals();
@@ -61,9 +61,6 @@ void GameWidget::setupBoard() {
     
     // Add board to stack
     boardStack->addWidget(board);
-
-    // Connect after board exists
-    connect(gameManager, &GameManager::moveApplied, board, &BoardWidget::onMoveApplied);
 }
 
 void GameWidget::setupOverlay() {
@@ -107,6 +104,7 @@ void GameWidget::connectGameManagerSignals() {
             gm->startNewGame(humanColor);
         }, Qt::QueuedConnection);
     });
+    connect(gameManager, &GameManager::moveApplied, board, &BoardWidget::onMoveApplied);
 }
 
 void GameWidget::connectUISignals() {
@@ -119,14 +117,29 @@ void GameWidget::connectUISignals() {
     connect(colorChooser, &ColorChooserWidget::colorChosen, this, [this](bool playerIsBlack) {
         boardStack->setCurrentIndex(0);
         board->setHumanColor(playerIsBlack ? BLACK : WHITE);
+        // If player is white, AI starts thinking
+        board->setThinking(!playerIsBlack);
         emit startGame(playerIsBlack);
     });
 }
 
 void GameWidget::connectResetButton() {
     connect(resetButton, &QPushButton::clicked, this, [this]() {
-        QMetaObject::invokeMethod(gameManager, &GameManager::resetGame, Qt::QueuedConnection);
+        // Interrupt any ongoing AI work, stop old thread and manager
+        if (gameThread) {
+            gameThread->requestInterruption();
+            disconnect(gameManager, nullptr, this, nullptr);
+            disconnect(gameManager, nullptr, board, nullptr);
+            gameThread->quit();
+            gameThread->wait();
+        }
+        
+        // Create new manager and thread
+        setupGameManager();
+        
+        // Reset UI
         board->resetSnapshot();
+        board->setThinking(false);
         boardStack->setCurrentIndex(1);
     });
 }

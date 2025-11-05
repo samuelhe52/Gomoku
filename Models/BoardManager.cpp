@@ -4,26 +4,14 @@
 
 #include "BoardManager.h"
 
-BoardManager::BoardManager() = default;
+BoardManager::BoardManager() {
+    // Reserve capacity to avoid rehashing during game
+    candidateMovesCache.reserve(64);
+}
 
 const std::vector<BoardPosition> BoardManager::criticalPoints = {
     {3, 3}, {3, 11}, {7, 7}, {11, 3}, {11, 11}
 };
-
-void BoardManager::resetGame() {
-    for (auto &row : board) {
-        std::fill(std::begin(row), std::end(row), EMPTY);
-    }
-    _blackTurn = true;
-    movesHistory.clear();
-    candidateMovesCache.clear();
-    // Reset candidate map
-    for (auto &row : candidateMap) {
-        std::fill(std::begin(row), std::end(row), false);
-    }
-    // Reserve capacity to avoid rehashing during game
-    candidateMovesCache.reserve(64);
-}
 
 void BoardManager::_makeMove(BoardPosition position) {
     board[position.row][position.col] = _blackTurn ? BLACK : WHITE;
@@ -158,10 +146,10 @@ BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
     candidateMap[pos.row][pos.col] = false;
 
     // Pre-calculate bounds
-    const int minRow = std::max(0, pos.row - candidateRadius);
-    const int maxRow = std::min(BOARD_SIZE - 1, pos.row + candidateRadius);
-    const int minCol = std::max(0, pos.col - candidateRadius);
-    const int maxCol = std::min(BOARD_SIZE - 1, pos.col + candidateRadius);
+    const int minRow = std::max(0, pos.row - MAX_CANDIDATE_RADIUS);
+    const int maxRow = std::min(BOARD_SIZE - 1, pos.row + MAX_CANDIDATE_RADIUS);
+    const int minCol = std::max(0, pos.col - MAX_CANDIDATE_RADIUS);
+    const int maxCol = std::min(BOARD_SIZE - 1, pos.col + MAX_CANDIDATE_RADIUS);
 
     for (int newRow = minRow; newRow <= maxRow; ++newRow) {
         for (int newCol = minCol; newCol <= maxCol; ++newCol) {

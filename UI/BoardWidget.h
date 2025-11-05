@@ -34,6 +34,7 @@ signals:
 public slots:
     void onMoveApplied(MoveResult result);
     void resetSnapshot();
+    void setThinking(bool thinking);
 
 private:
     char boardSnapshot[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
@@ -41,6 +42,7 @@ private:
     bool boardFullSnapshot = false;
     char currentPlayerSnapshot = BLACK;
     char humanColor = BLACK;
+    bool thinking = false;
 
     [[nodiscard]] int boardCellSize() const;
 
@@ -64,6 +66,7 @@ private:
     void drawCriticalPoints(QPainter &painter) const;
     void drawStones(QPainter &painter) const;
     void drawWinnerOverlay(QPainter &painter, const QString &winnerText) const;
+    void drawThinkingOverlay(QPainter &painter) const;
 };
 
 #endif //GOMOKU_BOARDWIDGET_H

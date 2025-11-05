@@ -11,7 +11,7 @@
 #define BLACK 1
 #define WHITE 2
 
-#define MAX_DEPTH 5
+#define MAX_DEPTH 7
 #define MAX_CANDIDATE_RADIUS 2
 
 #endif

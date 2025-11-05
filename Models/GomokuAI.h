@@ -15,7 +15,7 @@
 
 class GomokuAI {
 public:
-    static BoardPosition getBestMove(BoardManager& boardManager);
+    static BoardPosition getBestMove(const BoardManager& boardManager);
     static BoardPosition randomMove(const BoardManager& boardManager);
 
     static void setColor(char c) { color = c; } // BLACK(1) or WHITE(2)

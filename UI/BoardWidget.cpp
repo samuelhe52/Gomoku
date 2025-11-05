@@ -29,6 +29,10 @@ void BoardWidget::paintEvent(QPaintEvent *) {
         QString winnerText = (winnerSnapshot == BLACK) ? "Black Wins!" : "White Wins!";
         drawWinnerOverlay(painter, winnerText);
     }
+
+    if (!boardFullSnapshot && winnerSnapshot == EMPTY && thinking) {
+        drawThinkingOverlay(painter);
+    }
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
@@ -194,12 +198,16 @@ int BoardWidget::boardCellSize() const {
 }
 
 void BoardWidget::onMoveApplied(MoveResult result) {
-    if (result.moveApplied && result.position.row >= 0 && result.position.col >= 0) {
-        boardSnapshot[result.position.row][result.position.col] = result.placedColor;
+    if (!result.moveApplied || result.position.row < 0 || result.position.col < 0) {
+        return;
     }
+    
+    boardSnapshot[result.position.row][result.position.col] = result.placedColor;
+    currentPlayerSnapshot = (result.placedColor == BLACK) ? WHITE : BLACK;
     winnerSnapshot = result.winner;
     boardFullSnapshot = result.boardIsFull;
-    currentPlayerSnapshot = (result.placedColor == BLACK) ? WHITE : BLACK;
+
+    thinking = (winnerSnapshot == EMPTY) && !boardFullSnapshot && (currentPlayerSnapshot != humanColor);
     update();
 }
 
@@ -212,5 +220,41 @@ void BoardWidget::resetSnapshot() {
     winnerSnapshot = EMPTY;
     boardFullSnapshot = false;
     currentPlayerSnapshot = BLACK;
+    thinking = false;
     update();
+}
+
+void BoardWidget::setThinking(const bool t) {
+    thinking = t;
+    update();
+}
+
+void BoardWidget::drawThinkingOverlay(QPainter &painter) const {
+    QFont font = painter.font();
+    font.setPointSize(16);
+    font.setBold(true);
+    painter.setFont(font);
+
+    const QString text = "AI is thinking…";
+    const QFontMetrics metrics(font);
+    const QRect textBounds = metrics.boundingRect(text);
+
+    const int padding = 12;
+    const int boxWidth = textBounds.width() + padding * 2;
+    const int boxHeight = textBounds.height() + padding * 2;
+
+    const int boxX = startX + (borderSize - boxWidth) / 2;
+    const int boxY = startY + (borderSize - boxHeight) / 2 - static_cast<int>(borderSize * 0.4);
+    const QRect backgroundRect(boxX, boxY, boxWidth, boxHeight);
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(0, 0, 0, 150));
+    painter.drawRoundedRect(backgroundRect, 10, 10);
+
+    painter.setPen(QPen(QColor(255, 255, 255, 220), 2));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRoundedRect(backgroundRect, 10, 10);
+
+    painter.setPen(Qt::white);
+    painter.drawText(backgroundRect, Qt::AlignCenter, text);
 }

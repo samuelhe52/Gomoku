@@ -45,10 +45,8 @@ public:
     [[nodiscard]] bool isBoardEmpty() const { return boardManager.isBoardEmpty(); }
 
 public slots:
-    // Configure the player colors and reset to a fresh game.
+    // Configure the player colors and initialize a fresh game state.
     void startNewGame(char humanColor);
-    // Clear the board while keeping the configured colors.
-    void resetGame();
 
     // Attempt to place a human move; automatically triggers AI move if game continues.
     void handleHumanMove(BoardPosition position);
@@ -69,6 +67,9 @@ private:
     char _aiColor = WHITE;
     char _currentTurn = BLACK;
     char _winner = EMPTY;
+    
+    // Clear board and manager state to the beginning of a new game
+    void initializeNewGameState();
 };
 
 #endif //GOMOKU_GAMEMANAGER_H

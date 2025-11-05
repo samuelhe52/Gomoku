@@ -48,8 +48,6 @@ class BoardManager {
 public:
     BoardManager();
 
-    void resetGame();
-
     // Returns EMPTY if no winner after the move, BLACK if black wins, WHITE if white wins
     char makeMove(BoardPosition position);
     void undoMove();
@@ -92,9 +90,7 @@ private:
     bool candidateMap[BOARD_SIZE][BOARD_SIZE] = {{false}};
     
     CandidatesDelta updateCandidatesCache(BoardPosition pos, char player);
-    [[nodiscard]] std::vector<BoardPosition> candidatesAround(BoardPosition position, int radius) const;
     void reverseCandidatesCache(const CandidatesDelta& delta, BoardPosition moveUndone);
-    const int candidateRadius = MAX_CANDIDATE_RADIUS;
 
     struct MoveRecord {
         BoardPosition position;

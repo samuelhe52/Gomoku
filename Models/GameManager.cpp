@@ -6,24 +6,25 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <new>
 
 GameManager::GameManager(QObject *parent) : QObject(parent) {
-    resetGame();
+    initializeNewGameState();
 }
 
 void GameManager::startNewGame(const char humanColor) {
     _humanColor = humanColor;
     _aiColor = (humanColor == BLACK) ? WHITE : BLACK;
     GomokuAI::setColor(_aiColor);
-    resetGame();
+    initializeNewGameState();
     // If AI goes first, make the first move
     if (isAITurn()) {
         makeAIFirstMove();
     }
 }
 
-void GameManager::resetGame() {
-    boardManager.resetGame();
+void GameManager::initializeNewGameState() {
+    boardManager = BoardManager();
     _currentTurn = BLACK;
     _winner = EMPTY;
 }
@@ -66,18 +67,15 @@ MoveResult GameManager::playHumanMove(const BoardPosition position) {
 }
 
 MoveResult GameManager::playAIMove() {
-    if (!isAITurn()) {
-        return {false, _winner, boardManager.isBoardFull(), {-1, -1}};
-    }
-
-    if (_winner != EMPTY) {
-        return {false, _winner, boardManager.isBoardFull(), {-1, -1}};
+    const MoveResult invalidResult = {false, _winner, boardManager.isBoardFull(), {-1, -1}};
+    if (!isAITurn() || _winner != EMPTY) {
+        return invalidResult;
     }
 
     BoardPosition aiMove = GomokuAI::getBestMove(boardManager);
     if (!boardManager.isValidMove(aiMove)) {
         std::cerr << "AI attempted invalid move at " << aiMove << std::endl;
-        exit(EXIT_FAILURE);
+        return invalidResult;
     }
 
     return applyMove(aiMove);

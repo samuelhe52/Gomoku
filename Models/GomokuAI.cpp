@@ -4,13 +4,17 @@
 
 #include "GomokuAI.h"
 #include "BoardManager.h"
+#include <QThread>
 
 // Define static member variable
 char GomokuAI::color;
 
-BoardPosition GomokuAI::getBestMove(BoardManager &boardManager) {
+BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) {
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        return {-1, -1};
+    }
     if (boardManager.isBoardEmpty()) {
-        return {BOARD_SIZE / 2, BOARD_SIZE / 2}; // Start in the center
+        return {BOARD_SIZE / 2, BOARD_SIZE / 2};
     }
 
     BoardManager simulatedBoard = boardManager;
@@ -346,17 +350,20 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
     char currentPlayer,
     int alpha,
     int beta) {
-        char winner = boardManager.checkWinner();
-        if (depth == 0 || winner != EMPTY) {
-            if (winner == color) {
-                // Prefer immediate wins
-                return {std::numeric_limits<int>::max() / 2 + 10000, {}};
-            } else if (winner == getOpponent(color)) {
-                return {std::numeric_limits<int>::min() / 2 - 10000, {}};
-            }
-            // Always evaluate from the AI's perspective
-            return {evaluate(boardManager, color), {}};
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        return {0, {-1, -1}};
+    }
+    char winner = boardManager.checkWinner();
+    if (depth == 0 || winner != EMPTY) {
+        if (winner == color) {
+            // Prefer immediate wins
+            return {std::numeric_limits<int>::max() / 2 + 10000, {}};
+        } else if (winner == getOpponent(color)) {
+            return {std::numeric_limits<int>::min() / 2 - 10000, {}};
         }
+        // Always evaluate from the AI's perspective
+        return {evaluate(boardManager, color), {}};
+    }
 
         BoardPosition bestMove;
         auto moves = candidateMoves(boardManager);
@@ -365,6 +372,9 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
             int maxEval = std::numeric_limits<int>::min();
 
             for (const auto& pos : moves) {
+                if (QThread::currentThread()->isInterruptionRequested()) {
+                    break;
+                }
                 boardManager.makeMove(pos);
                 auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, getOpponent(currentPlayer), alpha, beta);
                 boardManager.undoMove();
@@ -388,6 +398,9 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
             int minEval = std::numeric_limits<int>::max();
 
             for (const auto& pos : moves) {
+                if (QThread::currentThread()->isInterruptionRequested()) {
+                    break;
+                }
                 boardManager.makeMove(pos);
                 auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, getOpponent(currentPlayer), alpha, beta);
                 boardManager.undoMove();
