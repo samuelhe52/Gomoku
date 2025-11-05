@@ -32,6 +32,11 @@ void BoardWidget::paintEvent(QPaintEvent *) {
 }
 
 void BoardWidget::mousePressEvent(QMouseEvent *event) {
+    if (currentPlayerSnapshot != humanColor) {
+        // Ignore clicks if it's not the human's turn
+        event->ignore();
+        return;
+    }
     if (event->button() != Qt::LeftButton) {
         // Propagate the event if it's not a left click
         QWidget::mousePressEvent(event);
@@ -194,6 +199,7 @@ void BoardWidget::onMoveApplied(MoveResult result) {
     }
     winnerSnapshot = result.winner;
     boardFullSnapshot = result.boardIsFull;
+    currentPlayerSnapshot = (result.placedColor == BLACK) ? WHITE : BLACK;
     update();
 }
 
@@ -205,5 +211,6 @@ void BoardWidget::resetSnapshot() {
     }
     winnerSnapshot = EMPTY;
     boardFullSnapshot = false;
+    currentPlayerSnapshot = BLACK;
     update();
 }

@@ -115,9 +115,10 @@ void GameWidget::connectUISignals() {
         emit handleHumanMove(position);
     });
     
-    // Trigger game start
+    // Trigger game start after color is chosen
     connect(colorChooser, &ColorChooserWidget::colorChosen, this, [this](bool playerIsBlack) {
         boardStack->setCurrentIndex(0);
+        board->setHumanColor(playerIsBlack ? BLACK : WHITE);
         emit startGame(playerIsBlack);
     });
 }

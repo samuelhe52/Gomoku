@@ -20,6 +20,7 @@ public:
     
     // Trigger a repaint 
     void refresh() { update(); }
+    void setHumanColor(char color) { humanColor = color; }
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -38,6 +39,8 @@ private:
     char boardSnapshot[BOARD_SIZE][BOARD_SIZE] = {{EMPTY}};
     char winnerSnapshot = EMPTY;
     bool boardFullSnapshot = false;
+    char currentPlayerSnapshot = BLACK;
+    char humanColor = BLACK;
 
     [[nodiscard]] int boardCellSize() const;
 
