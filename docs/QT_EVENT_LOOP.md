@@ -1,6 +1,7 @@
 # Qt Event Loop and Signal-Slot Behavior
 
 ## Overview
+
 This document explains how Qt's event loop, signals/slots, and widget painting interact, based on findings from debugging the Gomoku UI update issue.
 
 ## Key Concepts
@@ -8,6 +9,7 @@ This document explains how Qt's event loop, signals/slots, and widget painting i
 ### 1. Signal Emission (emit)
 
 **Default behavior with Qt::AutoConnection (same thread):**
+
 ```cpp
 emit moveApplied(result);  // Direct function call - executes IMMEDIATELY
 // Connected slot runs here, synchronously
@@ -17,6 +19,7 @@ emit moveApplied(result);  // Direct function call - executes IMMEDIATELY
 `emit` is **synchronous** by default when sender and receiver are in the same thread. It's essentially a direct function call to all connected slots.
 
 **Different threads:**
+
 ```cpp
 emit moveApplied(result);  // Queued - added to receiver's event queue
 // Returns immediately
@@ -49,6 +52,7 @@ board->refresh();  // Qt sees BoardWidget already needs painting
 ## The Problem We Encountered
 
 ### Issue
+
 When a human makes a move, it only appears on the board after the AI responds.
 
 ### Root Cause
@@ -70,6 +74,7 @@ void GameManager::handleHumanMove(const BoardPosition position) {
 ```
 
 **Event timeline (BEFORE fix):**
+
 1. Human move applied to board state
 2. `emit moveApplied(humanResult)` → `board->refresh()` adds paint event to queue
 3. AI move calculated (blocking, takes time)

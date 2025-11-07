@@ -1,0 +1,22 @@
+# .markdownlint.yaml
+
+MD004: # Unordered list style
+  style: dash # Use dashes for unordered lists
+
+# Configure specific rules
+MD007: # Unordered list indentation
+  indent: 2 # Indent by 2 spaces
+
+MD013: false # Disable line length rule
+MD036: false # Disable emphasis used instead of a heading
+
+# Define custom tags for rules
+tags:
+  accessibility:
+    - MD002 # First heading should be a top-level heading
+    - MD005 # Inconsistent indentation for list items at the same level
+  style:
+    - MD006 # Consider starting bulleted lists at the beginning of the line
+    - MD009 # Trailing spaces
+
+exclude:

@@ -1,12 +1,15 @@
 # Performance Optimizations for candidatesMoveCache
 
 ## Overview
+
 This document describes the performance bottlenecks identified in the `candidatesMoveCache` system and the optimizations implemented.
 
 ## Identified Bottlenecks
 
 ### 1. **Hash Lookups for Existence Checks (Major Bottleneck)**
+
 **Problem:** Using `count()` or hash table lookups to check if a candidate already exists in the cache during the hot loop.
+
 ```cpp
 // OLD - hash computation + table lookup every iteration
 if (candidateMovesCache.count(newPos) == 0) {
@@ -15,6 +18,7 @@ if (candidateMovesCache.count(newPos) == 0) {
 ```
 
 **Solution:** Use a parallel boolean array for O(1) guaranteed lookups. Also batch insert candidates for a small additional gain.
+
 ```cpp
 // NEW - simple array access, no hashing needed
 if (!candidateMap[newRow][newCol]) {
@@ -31,13 +35,16 @@ candidateMovesCache.insert(lastRecord.addedCandidates.begin(),
 ---
 
 ### 2. **Unnecessary Set Copying**
+
 **Problem:** `getCandidateMoves()` returned by value, copying the entire unordered_set.
+
 ```cpp
 // OLD - copies entire set
 std::unordered_set<BoardPosition> getCandidateMoves() const
 ```
 
 **Solution:** Return by const reference.
+
 ```cpp
 // NEW - no copying
 const std::unordered_set<BoardPosition>& getCandidateMoves() const
@@ -48,7 +55,9 @@ const std::unordered_set<BoardPosition>& getCandidateMoves() const
 ---
 
 ### 3. **Intermediate Vector Allocation**
+
 **Problem:** `candidatesAround()` created a temporary vector, then each element was checked.
+
 ```cpp
 // OLD
 for (const auto& newPos : candidatesAround(pos, candidateRadius)) {
@@ -59,6 +68,7 @@ for (const auto& newPos : candidatesAround(pos, candidateRadius)) {
 ```
 
 **Solution:** Inline the candidate generation loop directly in `updateCandidatesCache()`.
+
 ```cpp
 // NEW - no vector allocation
 for (int dr = minRow - pos.row; dr <= maxRow - pos.row; ++dr) {
@@ -73,9 +83,11 @@ for (int dr = minRow - pos.row; dr <= maxRow - pos.row; ++dr) {
 ---
 
 ### 4. **Repeated Boundary Calculations**
+
 **Problem:** Boundary checks were performed inside nested loops.
 
 **Solution:** Pre-calculate bounds once.
+
 ```cpp
 const int minRow = std::max(0, pos.row - candidateRadius);
 const int maxRow = std::min(BOARD_SIZE - 1, pos.row + candidateRadius);
@@ -88,13 +100,16 @@ const int maxCol = std::min(BOARD_SIZE - 1, pos.col + candidateRadius);
 ---
 
 ### 5. **Inefficient Hash Function**
+
 **Problem:** Hash function used XOR and multiple function calls.
+
 ```cpp
 // OLD
 return hash<int>()(pos.row) ^ (hash<int>()(pos.col) << 1);
 ```
 
 **Solution:** Optimized bit-packing hash for small coordinate values.
+
 ```cpp
 // NEW - single operation
 return (static_cast<size_t>(pos.row) << 4) | static_cast<size_t>(pos.col);
@@ -105,9 +120,11 @@ return (static_cast<size_t>(pos.row) << 4) | static_cast<size_t>(pos.col);
 ---
 
 ### 6. **Hash Table Rehashing**
+
 **Problem:** No initial capacity reservation, causing rehashing during gameplay.
 
 **Solution:** Reserve capacity based on expected game size.
+
 ```cpp
 candidateMovesCache.reserve(64);
 ```
@@ -129,6 +146,7 @@ candidateMovesCache.reserve(64);
 | Reserve capacity | Avoids rehashing during game |
 
 **Overall Impact:**
+
 - Significant reduction in cache operation time
 - Noticeable improvement in AI move calculation speed
 - Most beneficial in deeper minimax searches (depth 4-6)
@@ -138,18 +156,23 @@ candidateMovesCache.reserve(64);
 ## Further Optimization Opportunities
 
 ### 1. **Move Ordering Cache**
+
 Cache the sorted move list to avoid re-sorting in `candidateMoves()`.
 
 ### 2. **Transposition Table**
+
 Add position hashing to avoid recalculating the same board states.
 
 ### 3. **Bitboard Representation**
+
 For very advanced optimization, consider using bitboards instead of 2D arrays.
 
 ### 4. **Parallel Search**
+
 Implement parallel minimax for multi-core systems.
 
 ### 5. **Alternative Data Structure**
+
 For very small candidate sets (<10), a sorted `std::vector` can be faster than `unordered_set` due to better cache locality.
 
 ---

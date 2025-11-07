@@ -3,7 +3,7 @@
 The current UI and model layers separate responsibilities so the user
 interface drives turn flow while core rules remain reusable.
 
-```
+```txt
 ┌─────────────────┐
 │   GameWidget     │  QWidget controller
 │─────────────────│
