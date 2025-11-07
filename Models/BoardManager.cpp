@@ -7,6 +7,13 @@
 BoardManager::BoardManager() {
     // Reserve capacity to avoid rehashing during game
     candidateMovesCache.reserve(64);
+    // Calculate manhattan distances from center
+    const int center = BOARD_SIZE / 2;
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            centerManhattanDistance[row][col] = std::abs(center - row) + std::abs(center - col);
+        }
+    }
 }
 
 const std::vector<BoardPosition> BoardManager::criticalPoints = {
@@ -107,12 +114,6 @@ char BoardManager::checkWinner() const {
     }
 
     return EMPTY;
-}
-
-bool BoardManager::isValidMove(const BoardPosition position) const {
-    return position.row >= 0 && position.row < BOARD_SIZE &&
-           position.col >= 0 && position.col < BOARD_SIZE &&
-           board[position.row][position.col] == EMPTY;
 }
 
 bool BoardManager::isBoardFull() const {

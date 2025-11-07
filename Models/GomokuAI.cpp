@@ -155,16 +155,10 @@ std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardMan
         }
     }
 
-    // Prefer center control 
+    // Prefer center control
     std::sort(moves.begin(), moves.end(), [&](const BoardPosition& a, const BoardPosition& b) {
-        int scoreA = 0;
-        int scoreB = 0;
-
-        int center = BOARD_SIZE / 2;
-        scoreA -= (abs(center - a.row) + abs(center - a.col));
-        scoreB -= (abs(center - b.row) + abs(center - b.col));
-
-        return scoreA > scoreB; 
+        return boardManager.centerManhattanDistance[a.row][a.col] <
+               boardManager.centerManhattanDistance[b.row][b.col];
     });
 
     threatMoves.insert(threatMoves.end(), moves.begin(), moves.end());

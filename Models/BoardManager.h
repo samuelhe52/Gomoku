@@ -57,7 +57,12 @@ public:
 
     [[nodiscard]] inline char getCell(const int row, const int col) const { return board[row][col]; }
     [[nodiscard]] inline char getCell(const BoardPosition position) const { return board[position.row][position.col]; }
-    [[nodiscard]] bool isValidMove(BoardPosition position) const;
+    int centerManhattanDistance[BOARD_SIZE][BOARD_SIZE];
+    [[nodiscard]] inline bool isValidMove(BoardPosition position) const {
+        return position.row >= 0 && position.row < BOARD_SIZE &&
+               position.col >= 0 && position.col < BOARD_SIZE &&
+               board[position.row][position.col] == EMPTY;
+    }
 
     [[nodiscard]] bool isBoardFull() const;
     [[nodiscard]] bool isBoardEmpty() const;
