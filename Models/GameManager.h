@@ -28,6 +28,9 @@ class GameManager : public QObject {
     
 public:
     explicit GameManager(QObject *parent = nullptr);
+    ~GameManager() {
+        delete _aiEngine;
+    }
 
     // Turn helpers for UI flow control.
     [[nodiscard]] bool isHumansTurn() const { return _currentTurn == _humanColor; }
@@ -67,6 +70,7 @@ private:
     char _aiColor = WHITE;
     char _currentTurn = BLACK;
     char _winner = EMPTY;
+    GomokuAI* _aiEngine = nullptr;
     
     // Clear board and manager state to the beginning of a new game
     void initializeNewGameState();

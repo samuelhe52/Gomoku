@@ -15,29 +15,15 @@
 
 class GomokuAI {
 public:
-    static BoardPosition getBestMove(const BoardManager& boardManager);
-    static BoardPosition randomMove(const BoardManager& boardManager);
+    explicit GomokuAI(char color, int maxDepth = MAX_DEPTH);
 
-    static void setColor(char c) { color = c; } // BLACK(1) or WHITE(2)
-    [[nodiscard]] static char getColor() { return color; }
+    BoardPosition getBestMove(const BoardManager& boardManager) const;
+    BoardPosition randomMove(const BoardManager& boardManager) const;
 
-private:
-    static char color; // BLACK(1) or WHITE(2)
-    [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
-
-    [[nodiscard]] static bool wouldWin(const BoardManager& boardManager,
-                                       BoardPosition position,
-                                       char player);
-
-    [[nodiscard]] static bool posesThreat(const BoardManager& boardManager,
-                                          BoardPosition position,
-                                          char player);
-
-    // Get possible candidate moves within a certain radius of existing pieces
-    [[nodiscard]] static std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager);
-
-    // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
-    [[nodiscard]] static int evaluate(const BoardManager& boardManager, char player);
+    void setColor(char c) { _color = c; }
+    [[nodiscard]] char getColor() const { return _color; }
+    void setMaxDepth(int depth) { _maxDepth = depth; }
+    [[nodiscard]] int getMaxDepth() const { return _maxDepth; }
 
     struct SequenceSummary {
         int score = 0;
@@ -45,16 +31,72 @@ private:
         int semiOpenThrees = 0;
         int openFours = 0;
         int semiOpenFours = 0;
+
+        SequenceSummary& operator+=(const SequenceSummary& other) {
+            score += other.score;
+            openThrees += other.openThrees;
+            semiOpenThrees += other.semiOpenThrees;
+            openFours += other.openFours;
+            semiOpenFours += other.semiOpenFours;
+            return *this;
+        }
     };
+
+    static SequenceSummary combine(const SequenceSummary& a, const SequenceSummary& b) {
+        SequenceSummary result;
+        result.score = a.score + b.score;
+        result.openThrees = a.openThrees + b.openThrees;
+        result.semiOpenThrees = a.semiOpenThrees + b.semiOpenThrees;
+        result.openFours = a.openFours + b.openFours;
+        result.semiOpenFours = a.semiOpenFours + b.semiOpenFours;
+        return result;
+    }
+
+private:
+    char _color; // BLACK(1) or WHITE(2)
+    int _maxDepth;
+
+    [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
+
+    [[nodiscard]] bool wouldWin(const BoardManager& boardManager,
+                                BoardPosition position,
+                                char player) const;
+
+    [[nodiscard]] bool posesThreat(const BoardManager& boardManager,
+                                   BoardPosition position,
+                                   char player) const;
+
+    // Get possible candidate moves within a certain radius of existing pieces
+    [[nodiscard]] std::vector<BoardPosition> candidateMoves(const BoardManager& boardManager) const;
+
+    // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
+    [[nodiscard]] int evaluate(const BoardManager& boardManager, char player) const;
 
     [[nodiscard]] static bool isInsideBoard(int row, int col);
     [[nodiscard]] static int sequenceScore(int length, int openSides);
-    [[nodiscard]] static std::pair<SequenceSummary, SequenceSummary> 
-        evaluateSequences(const BoardManager& boardManager);
-    [[nodiscard]] static int centerControlBias(const BoardManager& boardManager, char player);
+
+    [[nodiscard]] std::pair<SequenceSummary, SequenceSummary> 
+        evaluateSequences(const BoardManager& boardManager) const;
+
+    [[nodiscard]] SequenceSummary evaluateForPlayerAtPos(
+        const BoardManager& boardManager,
+        char player,
+        int row,
+        int col
+    ) const;
+
+    [[nodiscard]] int centerControlBias(const BoardManager& boardManager, char player) const;
 
     // minimax with alpha-beta pruning. Returns a pair of (score, best move)
-    [[nodiscard]] static std::pair<int, BoardPosition> minimaxAlphaBeta(BoardManager& boardManager, int depth, bool isMaximizing, char currentPlayer, int alpha, int beta);
+    [[nodiscard]] std::pair<int, BoardPosition>
+    minimaxAlphaBeta(
+        BoardManager& boardManager,
+        int depth,
+        bool isMaximizing,
+        char currentPlayer,
+        int alpha,
+        int beta
+    ) const;
 };
 
 

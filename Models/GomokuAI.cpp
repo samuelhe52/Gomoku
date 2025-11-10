@@ -6,10 +6,10 @@
 #include "BoardManager.h"
 #include <QThread>
 
-// Define static member variable
-char GomokuAI::color;
+GomokuAI::GomokuAI(const char color, const int maxDepth)
+    : _color(color), _maxDepth(maxDepth) {}
 
-BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) {
+BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) const {
     if (QThread::currentThread()->isInterruptionRequested()) {
         return {-1, -1};
     }
@@ -18,12 +18,12 @@ BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) {
     }
 
     BoardManager simulatedBoard = boardManager;
-    return minimaxAlphaBeta(simulatedBoard, MAX_DEPTH, true, getColor(),
+    return minimaxAlphaBeta(simulatedBoard, _maxDepth, true, _color,
                             std::numeric_limits<int>::min(),
                             std::numeric_limits<int>::max()).second;
 }
 
-BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
+BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) const {
     srand(time(nullptr));
     // Placeholder: choose random available cell
     int randomRow, randomCol;
@@ -36,7 +36,7 @@ BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) {
 
 bool GomokuAI::wouldWin(const BoardManager& boardManager,
                         const BoardPosition position,
-                        const char player) {
+                        const char player) const {
     if (!boardManager.isValidMove(position)) return false;
 
     const int directions[4][2] = {
@@ -81,7 +81,7 @@ bool GomokuAI::wouldWin(const BoardManager& boardManager,
 
 bool GomokuAI::posesThreat(const BoardManager& boardManager,
                            const BoardPosition position,
-                           const char player) {
+                           const char player) const {
     if (!boardManager.isValidMove(position)) return false;
 
     const int directions[4][2] = {
@@ -138,17 +138,17 @@ bool GomokuAI::posesThreat(const BoardManager& boardManager,
 
 
 
-std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) {
+std::vector<BoardPosition> GomokuAI::candidateMoves(const BoardManager& boardManager) const {
     std::vector<BoardPosition> threatMoves;
     std::vector<BoardPosition> moves;
 
     for (const auto& pos : boardManager.getCandidateMoves()) {
-        if (wouldWin(boardManager, pos, color) ||
-            wouldWin(boardManager, pos, getOpponent(color))) {
+        if (wouldWin(boardManager, pos, _color) ||
+            wouldWin(boardManager, pos, getOpponent(_color))) {
             // Prioritize immediate winning/blocking moves
             return {pos};
-        } else if (posesThreat(boardManager, pos, color) ||
-                   posesThreat(boardManager, pos, getOpponent(color))) {
+        } else if (posesThreat(boardManager, pos, _color) ||
+                   posesThreat(boardManager, pos, getOpponent(_color))) {
             threatMoves.push_back(pos);
         } else {
             moves.push_back(pos);
@@ -196,8 +196,81 @@ int GomokuAI::sequenceScore(const int length, const int openSides) {
     }
 }
 
+GomokuAI::SequenceSummary GomokuAI::evaluateForPlayerAtPos(
+    const BoardManager& boardManager,
+    const char player,
+    const int row,
+    const int col
+) const {
+    SequenceSummary summary;
+
+    if (boardManager.getCell(row, col) != player) {
+        return summary;
+    }
+
+    const int directions[4][2] = {
+        {0, 1},
+        {1, 0},
+        {1, 1},
+        {1, -1}
+    };
+
+    for (const auto& dir : directions) {
+        const int prevRow = row - dir[0];
+        const int prevCol = col - dir[1];
+
+        if (isInsideBoard(prevRow, prevCol) &&
+            boardManager.getCell(prevRow, prevCol) == player) {
+            continue; // Already counted as part of a preceding segment
+        }
+
+        int length = 1;
+        int nextRow = row + dir[0];
+        int nextCol = col + dir[1];
+
+        while (
+            isInsideBoard(nextRow, nextCol) &&
+            boardManager.getCell(nextRow, nextCol) == player
+        ) {
+            ++length;
+            nextRow += dir[0];
+            nextCol += dir[1];
+        }
+
+        const bool openStart = isInsideBoard(prevRow, prevCol) && 
+                                boardManager.getCell(prevRow, prevCol) == EMPTY;
+        const bool openEnd = isInsideBoard(nextRow, nextCol) &&
+                                boardManager.getCell(nextRow, nextCol) == EMPTY;
+        const int openSides = static_cast<int>(openStart) + static_cast<int>(openEnd);
+        summary.score += sequenceScore(length, openSides);
+
+        if (length >= 5) {
+            if (openSides > 0) {
+                summary.openFours += 1;
+            }
+            continue;
+        }
+
+        if (length == 4) {
+            if (openSides == 2) {
+                summary.openFours += 1;
+            } else if (openSides == 1) {
+                summary.semiOpenFours += 1;
+            }
+        } else if (length == 3) {
+            if (openSides == 2) {
+                summary.openThrees += 1;
+            } else if (openSides == 1) {
+                summary.semiOpenThrees += 1;
+            }
+        }
+    }
+
+    return summary;
+}
+
 std::pair<GomokuAI::SequenceSummary, GomokuAI::SequenceSummary> 
-GomokuAI::evaluateSequences(const BoardManager& boardManager) {
+GomokuAI::evaluateSequences(const BoardManager& boardManager) const {
     const int directions[4][2] = {
         {0, 1},
         {1, 0},
@@ -272,15 +345,15 @@ GomokuAI::evaluateSequences(const BoardManager& boardManager) {
 
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            evaluateForPlayer(color, playerSummary, row, col);
-            evaluateForPlayer(getOpponent(color), opponentSummary, row, col);
+            evaluateForPlayer(_color, playerSummary, row, col);
+            evaluateForPlayer(getOpponent(_color), opponentSummary, row, col);
         }
     }
 
     return {playerSummary, opponentSummary};
 }
 
-int GomokuAI::centerControlBias(const BoardManager& boardManager, const char player) {
+int GomokuAI::centerControlBias(const BoardManager& boardManager, const char player) const {
     const int center = BOARD_SIZE / 2;
     int score = 0;
 
@@ -299,7 +372,7 @@ int GomokuAI::centerControlBias(const BoardManager& boardManager, const char pla
     return score;
 }
 
-int GomokuAI::evaluate(const BoardManager &boardManager, char player) {
+int GomokuAI::evaluate(const BoardManager &boardManager, const char player) const {
     const char opponent = getOpponent(player);
     const auto [playerSummary, opponentSummary] = evaluateSequences(boardManager);
 
@@ -343,20 +416,20 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
     bool isMaximizing,
     char currentPlayer,
     int alpha,
-    int beta) {
+    int beta) const {
         if (QThread::currentThread()->isInterruptionRequested()) {
             return {0, {-1, -1}};
         }
         char winner = boardManager.checkWinner();
         if (depth == 0 || winner != EMPTY) {
-            if (winner == color) {
+            if (winner == _color) {
                 // Prefer immediate wins
                 return {std::numeric_limits<int>::max() / 2 + 10000, {}};
-            } else if (winner == getOpponent(color)) {
+            } else if (winner == getOpponent(_color)) {
                 return {std::numeric_limits<int>::min() / 2 - 10000, {}};
             }
             // Always evaluate from the AI's perspective
-            return {evaluate(boardManager, color), {}};
+            return {evaluate(boardManager, _color), {}};
         }
 
         BoardPosition bestMove;
