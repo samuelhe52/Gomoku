@@ -2,8 +2,7 @@
 // Created by Samuel He on 2025/10/9.
 //
 
-#ifndef GOMOKU_GOMOKUAI_H
-#define GOMOKU_GOMOKUAI_H
+#pragma once
 
 #include "BoardManager.h"
 #include "Constants.h"
@@ -99,5 +98,3 @@ private:
     ) const;
 };
 
-
-#endif //GOMOKU_GOMOKUAI_H

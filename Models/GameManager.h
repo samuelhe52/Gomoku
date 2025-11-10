@@ -2,8 +2,7 @@
 // Created by Samuel He on 2025/10/9.
 //
 
-#ifndef GOMOKU_GAMEMANAGER_H
-#define GOMOKU_GAMEMANAGER_H
+#pragma once
 
 #include "BoardManager.h"
 #include "GomokuAI.h"
@@ -75,5 +74,3 @@ private:
     // Clear board and manager state to the beginning of a new game
     void initializeNewGameState();
 };
-
-#endif //GOMOKU_GAMEMANAGER_H

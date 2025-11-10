@@ -3,10 +3,8 @@
 //
 
 #pragma once
-#include <QMainWindow>
 
-#ifndef GOMOKU_MAINWINDOW_H
-#define GOMOKU_MAINWINDOW_H
+#include <QMainWindow>
 
 class BoardWidget;
 class MainWindow : public QMainWindow {
@@ -17,5 +15,3 @@ private:
     QToolBar *toolbar{};
     QAction *resetAction{};
 };
-
-#endif //GOMOKU_MAINWINDOW_H

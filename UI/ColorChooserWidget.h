@@ -3,13 +3,11 @@
 //
 
 #pragma once
+
 #include <QWidget>
 #include <QPushButton>
 #include <QBoxLayout>
 #include <QLabel>
-
-#ifndef GOMOKU_COLORCHOOSERWIDGET_H
-#define GOMOKU_COLORCHOOSERWIDGET_H
 
 class ColorChooserWidget : public QWidget {
     Q_OBJECT
@@ -31,4 +29,3 @@ private:
     void setupUI();
 };
 
-#endif // GOMOKU_COLORCHOOSERWIDGET_H

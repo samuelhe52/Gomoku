@@ -2,8 +2,7 @@
 // Created by Samuel He on 2025/10/1.
 //
 
-#ifndef GOMOKU_BOARDMANAGER_H
-#define GOMOKU_BOARDMANAGER_H
+#pragma once
 
 #include "Constants.h"
 #include <vector>
@@ -104,5 +103,3 @@ private:
 
     std::vector<MoveRecord> movesHistory;
 };
-
-#endif //GOMOKU_BOARDMANAGER_H

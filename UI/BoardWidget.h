@@ -3,14 +3,12 @@
 //
 
 #pragma once
+
 #include <QWidget>
 #include <QGraphicsEffect>
 #include <QPainter>
 #include <QMouseEvent>
 #include "../Models/GameManager.h"
-
-#ifndef GOMOKU_BOARDWIDGET_H
-#define GOMOKU_BOARDWIDGET_H
 
 class BoardWidget : public QWidget {
     Q_OBJECT
@@ -69,4 +67,3 @@ private:
     void drawThinkingOverlay(QPainter &painter) const;
 };
 
-#endif //GOMOKU_BOARDWIDGET_H
