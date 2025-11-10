@@ -35,3 +35,10 @@ target_link_libraries(Gomoku
         Qt::Widgets
 )
 
+add_executable(GomokuAIPerf
+        Tests/GomokuAIParallelizationTests.cpp
+        Models/BoardManager.cpp
+        Models/GomokuAI.cpp)
+
+target_link_libraries(GomokuAIPerf
+        Qt::Core)

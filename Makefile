@@ -8,6 +8,10 @@ build:
 launch:
 	cmake --build cmake-build-release && cmake-build-release/Gomoku
 
+.PHONY: perf
+perf:
+	cmake --build cmake-build-release && cmake-build-release/GomokuAIPerf
+
 .PHONY: clean
 clean:
 	rm -rf cmake-build-release

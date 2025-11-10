@@ -271,86 +271,22 @@ GomokuAI::SequenceSummary GomokuAI::evaluateForPlayerAtPos(
 
 std::pair<GomokuAI::SequenceSummary, GomokuAI::SequenceSummary> 
 GomokuAI::evaluateSequences(const BoardManager& boardManager) const {
-    const int directions[4][2] = {
-        {0, 1},
-        {1, 0},
-        {1, 1},
-        {1, -1}
-    };
-
     SequenceSummary playerSummary;
     SequenceSummary opponentSummary;
 
-    auto evaluateForPlayer = [&](
-        const char player,
-        SequenceSummary& summary,
-        const int row,
-        const int col
-    ) {
-        if (boardManager.getCell(row, col) != player) {
-            return;
-        }
-
-        for (const auto& dir : directions) {
-            const int prevRow = row - dir[0];
-            const int prevCol = col - dir[1];
-
-            if (isInsideBoard(prevRow, prevCol) &&
-                boardManager.getCell(prevRow, prevCol) == player) {
-                continue; // Already counted as part of a preceding segment
-            }
-
-            int length = 1;
-            int nextRow = row + dir[0];
-            int nextCol = col + dir[1];
-
-            while (
-                isInsideBoard(nextRow, nextCol) &&
-                boardManager.getCell(nextRow, nextCol) == player
-            ) {
-                ++length;
-                nextRow += dir[0];
-                nextCol += dir[1];
-            }
-
-            const bool openStart = isInsideBoard(prevRow, prevCol) && 
-                                    boardManager.getCell(prevRow, prevCol) == EMPTY;
-            const bool openEnd = isInsideBoard(nextRow, nextCol) &&
-                                    boardManager.getCell(nextRow, nextCol) == EMPTY;
-            const int openSides = static_cast<int>(openStart) + static_cast<int>(openEnd);
-            summary.score += sequenceScore(length, openSides);
-
-            if (length >= 5) {
-                if (openSides > 0) {
-                    summary.openFours += 1;
-                }
-                continue;
-            }
-
-            if (length == 4) {
-                if (openSides == 2) {
-                    summary.openFours += 1;
-                } else if (openSides == 1) {
-                    summary.semiOpenFours += 1;
-                }
-            } else if (length == 3) {
-                if (openSides == 2) {
-                    summary.openThrees += 1;
-                } else if (openSides == 1) {
-                    summary.semiOpenThrees += 1;
-                }
-            }
-        }
-    };
-
     for (int row = 0; row < BOARD_SIZE; ++row) {
         for (int col = 0; col < BOARD_SIZE; ++col) {
-            evaluateForPlayer(_color, playerSummary, row, col);
-            evaluateForPlayer(getOpponent(_color), opponentSummary, row, col);
+            playerSummary += evaluateForPlayerAtPos(boardManager, _color, row, col);
+            opponentSummary += evaluateForPlayerAtPos(boardManager, getOpponent(_color), row, col);
         }
     }
 
     return {playerSummary, opponentSummary};
+}
+
+std::pair<GomokuAI::SequenceSummary, GomokuAI::SequenceSummary> 
+GomokuAI::evaluationSequencesParallel(const BoardManager& boardManager) const {
+
 }
 
 int GomokuAI::centerControlBias(const BoardManager& boardManager, const char player) const {

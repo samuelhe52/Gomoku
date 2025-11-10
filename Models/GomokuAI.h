@@ -75,9 +75,12 @@ private:
     [[nodiscard]] static int sequenceScore(int length, int openSides);
 
     [[nodiscard]] std::pair<SequenceSummary, SequenceSummary> 
-        evaluateSequences(const BoardManager& boardManager) const;
+    evaluateSequences(const BoardManager& boardManager) const;
 
-    [[nodiscard]] SequenceSummary evaluateForPlayerAtPos(
+    [[nodiscard]] std::pair<SequenceSummary, SequenceSummary>
+    evaluationSequencesParallel(const BoardManager& boardManager) const;
+
+    [[nodiscard]] inline SequenceSummary evaluateForPlayerAtPos(
         const BoardManager& boardManager,
         char player,
         int row,
