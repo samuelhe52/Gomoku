@@ -42,3 +42,11 @@ add_executable(GomokuAIPerf
 
 target_link_libraries(GomokuAIPerf
         Qt::Core)
+
+add_executable(GomokuAIOverHeadTests
+        Tests/GomokuAIOverHeadTests.cpp
+        Models/BoardManager.cpp
+        Models/GomokuAI.cpp)
+
+target_link_libraries(GomokuAIOverHeadTests
+        Qt::Core)

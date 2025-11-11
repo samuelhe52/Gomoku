@@ -12,6 +12,10 @@ launch:
 perf:
 	cmake --build cmake-build-release && cmake-build-release/GomokuAIPerf
 
+.PHONY: test
+test:
+	cmake --build cmake-build-release && cmake-build-release/GomokuAIOverHeadTests
+
 .PHONY: clean
 clean:
 	rm -rf cmake-build-release

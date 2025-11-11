@@ -7,10 +7,9 @@
 #include "BoardManager.h"
 #include "Constants.h"
 #include <vector>
-#include <cstdlib>
-#include <ctime>
-#include <iostream>
-#include <limits>
+#include <future>
+#include <QThread>
+#include <thread>
 
 class GomokuAI {
 public:
@@ -51,10 +50,21 @@ public:
         return result;
     }
 
+
+    [[nodiscard]] inline SequenceSummary evaluateForPlayerAtPos(
+        const BoardManager& boardManager,
+        char player,
+        int row,
+        int col
+    ) const;
+
 private:
     char _color; // BLACK(1) or WHITE(2)
     int _maxDepth;
+    const unsigned int numThreads = std::thread::hardware_concurrency();
+    const unsigned int threadsToUse = (numThreads > 0) ? numThreads : 4;
 
+    [[nodiscard]] static std::vector<BoardPosition> getAllBoardCells();
     [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
 
     [[nodiscard]] bool wouldWin(const BoardManager& boardManager,
@@ -78,14 +88,7 @@ private:
     evaluateSequences(const BoardManager& boardManager) const;
 
     [[nodiscard]] std::pair<SequenceSummary, SequenceSummary>
-    evaluationSequencesParallel(const BoardManager& boardManager) const;
-
-    [[nodiscard]] inline SequenceSummary evaluateForPlayerAtPos(
-        const BoardManager& boardManager,
-        char player,
-        int row,
-        int col
-    ) const;
+    evaluateSequencesParallel(const BoardManager& boardManager) const;
 
     [[nodiscard]] int centerControlBias(const BoardManager& boardManager, char player) const;
 

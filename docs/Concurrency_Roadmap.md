@@ -1,3 +1,9 @@
+<!-- markdownlint-disable MD041 -->
+
+Parallelizing evaluate() is almost senseless here because the overhead of creating threads is killing the performance. We're going to turn to OpenMP or QT-based threading models to try save evaluate(). If that doesn't work, we'll switch to copying board every time when recursing into a new minimaxAlphaBeta() function.
+
+---
+
 # C++ Concurrency Roadmap: Parallelizing evaluate() in GomokuAI
 
 ## Where parallelism fits in your code

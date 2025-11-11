@@ -26,7 +26,7 @@ void BoardManager::_makeMove(BoardPosition position) {
     
     MoveRecord record;
     record.position = position;
-    record.candidatesDelta = updateCandidatesCache(position, board[position.row][position.col]);
+    record.candidatesDelta = updateCandidatesCache(position);
     movesHistory.push_back(record);
 }
 
@@ -135,8 +135,7 @@ bool BoardManager::isBoardEmpty() const {
 }
 
 BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
-    const BoardPosition pos,
-    const char player
+    const BoardPosition pos
 ) {
     CandidatesDelta lastRecord;
     

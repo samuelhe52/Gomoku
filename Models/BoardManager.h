@@ -93,7 +93,7 @@ private:
     std::unordered_set<BoardPosition> candidateMovesCache;
     bool candidateMap[BOARD_SIZE][BOARD_SIZE] = {{false}};
     
-    CandidatesDelta updateCandidatesCache(BoardPosition pos, char player);
+    CandidatesDelta updateCandidatesCache(BoardPosition pos);
     void reverseCandidatesCache(const CandidatesDelta& delta, BoardPosition moveUndone);
 
     struct MoveRecord {
