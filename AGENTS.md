@@ -15,6 +15,7 @@ The architecture uses Qt's signal/slot mechanism with GameManager running in a b
 ## Build, Test, and Development Commands
 
 ### Using Make (recommended for quick development)
+
 ```bash
 make build    # Configure and build the project
 make launch   # Build and run the game
@@ -22,6 +23,7 @@ make clean    # Remove build artifacts
 ```
 
 ### Using CMake directly
+
 ```bash
 # Configure
 cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
@@ -41,7 +43,7 @@ cmake-build-release/Release/Gomoku.exe      # Windows
 - **Indentation**: 4 spaces (no tabs)
 - **Standard**: C++17
 - **File headers**: Include creation date comments (`// Created by ... on YYYY/MM/DD`)
-- **Naming**: 
+- **Naming**:
   - Classes: PascalCase (e.g., `BoardManager`, `GameWidget`)
   - Variables: camelCase (e.g., `gameManager`, `boardFullSnapshot`)
   - Constants: UPPER_SNAKE_CASE (e.g., `BLACK`, `WHITE`, `EMPTY`)
@@ -52,6 +54,7 @@ cmake-build-release/Release/Gomoku.exe      # Windows
 ## Commit & Pull Request Guidelines
 
 ### Commit Message Patterns
+
 Based on repository history, use concise, imperative descriptions:
 
 - Good: `Fix compute not cancelled on reset button press`
@@ -62,6 +65,7 @@ Based on repository history, use concise, imperative descriptions:
 Focus on **what changed** and **why**. Use present tense for functionality descriptions.
 
 ### Pull Request Requirements
+
 - Ensure code compiles on all platforms (tested via CI)
 - Maintain compatibility with Qt6 and C++17 standards
 - Test UI responsiveness and AI behavior

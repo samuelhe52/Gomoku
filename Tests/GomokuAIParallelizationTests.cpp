@@ -143,7 +143,7 @@ namespace {
 		for (int i = 0; i < iterations; ++i) {
 			for (int row = 0; row < BOARD_SIZE; ++row) {
 				for (int col = 0; col < BOARD_SIZE; ++col) {
-					ai.evaluateForPlayerAtPos(scenario.board, scenario.aiColor, row, col);
+					auto _ = ai.evaluateForPlayerAtPos(scenario.board, scenario.aiColor, row, col);
 				}
 			}
 		}

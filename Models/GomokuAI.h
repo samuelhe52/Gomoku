@@ -9,7 +9,6 @@
 #include <vector>
 #include <future>
 #include <QThread>
-#include <thread>
 
 class GomokuAI {
 public:
@@ -40,18 +39,8 @@ public:
         }
     };
 
-    static SequenceSummary combine(const SequenceSummary& a, const SequenceSummary& b) {
-        SequenceSummary result;
-        result.score = a.score + b.score;
-        result.openThrees = a.openThrees + b.openThrees;
-        result.semiOpenThrees = a.semiOpenThrees + b.semiOpenThrees;
-        result.openFours = a.openFours + b.openFours;
-        result.semiOpenFours = a.semiOpenFours + b.semiOpenFours;
-        return result;
-    }
 
-
-    [[nodiscard]] inline SequenceSummary evaluateForPlayerAtPos(
+    [[nodiscard]] SequenceSummary evaluateForPlayerAtPos(
         const BoardManager& boardManager,
         char player,
         int row,
@@ -61,10 +50,7 @@ public:
 private:
     char _color; // BLACK(1) or WHITE(2)
     int _maxDepth;
-    const unsigned int numThreads = std::thread::hardware_concurrency();
-    const unsigned int threadsToUse = (numThreads > 0) ? numThreads : 4;
 
-    [[nodiscard]] static std::vector<BoardPosition> getAllBoardCells();
     [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
 
     [[nodiscard]] bool wouldWin(const BoardManager& boardManager,
@@ -81,14 +67,39 @@ private:
     // Heuristic evaluation of the board for a given player. Returns a score relative to the player's perspective.
     [[nodiscard]] int evaluate(const BoardManager& boardManager, char player) const;
 
-    [[nodiscard]] static bool isInsideBoard(int row, int col);
-    [[nodiscard]] static int sequenceScore(int length, int openSides);
+    [[nodiscard]] inline static bool isInsideBoard(int row, int col) {
+        return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE;
+    }
+
+    [[nodiscard]] inline static int sequenceScore(int length, int openSides) {
+        if (length >= 5) {
+            return 1000000;
+        }
+
+        switch (length) {
+            case 4:
+                if (openSides == 2) return 50000;
+                if (openSides == 1) return 10000;
+                return 300;
+            case 3:
+                if (openSides == 2) return 2000;
+                if (openSides == 1) return 400;
+                return 50;
+            case 2:
+                if (openSides == 2) return 200;
+                if (openSides == 1) return 60;
+                return 10;
+            case 1:
+                if (openSides == 2) return 20;
+                if (openSides == 1) return 5;
+                return 1;
+            default:
+                return 0;
+        }
+    }
 
     [[nodiscard]] std::pair<SequenceSummary, SequenceSummary> 
     evaluateSequences(const BoardManager& boardManager) const;
-
-    [[nodiscard]] std::pair<SequenceSummary, SequenceSummary>
-    evaluateSequencesParallel(const BoardManager& boardManager) const;
 
     [[nodiscard]] int centerControlBias(const BoardManager& boardManager, char player) const;
 

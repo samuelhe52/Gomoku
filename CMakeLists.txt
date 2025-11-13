@@ -11,6 +11,7 @@ find_package(Qt6 COMPONENTS
         Core
         Gui
         Widgets
+        Concurrent
         REQUIRED)
 
 add_executable(Gomoku main.cpp
@@ -33,6 +34,7 @@ target_link_libraries(Gomoku
         Qt::Core
         Qt::Gui
         Qt::Widgets
+        Qt::Concurrent
 )
 
 add_executable(GomokuAIPerf
@@ -41,7 +43,8 @@ add_executable(GomokuAIPerf
         Models/GomokuAI.cpp)
 
 target_link_libraries(GomokuAIPerf
-        Qt::Core)
+        Qt::Core
+        Qt::Concurrent)
 
 add_executable(GomokuAIOverHeadTests
         Tests/GomokuAIOverHeadTests.cpp
@@ -49,4 +52,5 @@ add_executable(GomokuAIOverHeadTests
         Models/GomokuAI.cpp)
 
 target_link_libraries(GomokuAIOverHeadTests
-        Qt::Core)
+        Qt::Core
+        Qt::Concurrent)
