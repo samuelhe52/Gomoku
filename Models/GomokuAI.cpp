@@ -17,7 +17,7 @@ BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) const {
     }
 
     BoardManager simulatedBoard = boardManager;
-    return minimaxAlphaBeta(simulatedBoard, _maxDepth, true, _color,
+    return minimaxAlphaBeta(simulatedBoard, _maxDepth, true,
                             std::numeric_limits<int>::min(),
                             std::numeric_limits<int>::max()).second;
 }
@@ -311,7 +311,6 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
     BoardManager& boardManager,
     int depth,
     bool isMaximizing,
-    char currentPlayer,
     int alpha,
     int beta) const {
         if (QThread::currentThread()->isInterruptionRequested()) {
@@ -337,7 +336,7 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
 
             for (const auto& pos : moves) {
                 boardManager.makeMove(pos);
-                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, getOpponent(currentPlayer), alpha, beta);
+                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, alpha, beta);
                 boardManager.undoMove();
                 
                 if (eval > maxEval) {
@@ -360,7 +359,7 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
 
             for (const auto& pos : moves) {
                 boardManager.makeMove(pos);
-                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, getOpponent(currentPlayer), alpha, beta);
+                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, alpha, beta);
                 boardManager.undoMove();
                 
                 if (eval < minEval) {

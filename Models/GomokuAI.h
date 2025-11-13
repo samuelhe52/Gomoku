@@ -109,7 +109,6 @@ private:
         BoardManager& boardManager,
         int depth,
         bool isMaximizing,
-        char currentPlayer,
         int alpha,
         int beta
     ) const;
