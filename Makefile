@@ -1,21 +1,26 @@
-.PHONY: build
+.PHONY: build launch perf test clean help
 build:
 	mkdir -p cmake-build-release
 	cd cmake-build-release && cmake -DCMAKE_BUILD_TYPE=Release ../
 	cmake --build cmake-build-release
 
-.PHONY: launch
 launch:
 	cmake --build cmake-build-release && cmake-build-release/Gomoku
 
-.PHONY: perf
 perf:
 	cmake --build cmake-build-release && cmake-build-release/GomokuAIPerf
 
-.PHONY: test
 test:
 	cmake --build cmake-build-release && cmake-build-release/GomokuAIOverHeadTests
 
-.PHONY: clean
 clean:
 	rm -rf cmake-build-release
+
+help:
+	@echo "Available commands:"
+	@echo "  build   - Build the Gomoku project in release mode"
+	@echo "  launch  - Build and launch the Gomoku application"
+	@echo "  perf    - Build and run the Gomoku AI performance tests"
+	@echo "  test    - Build and run the Gomoku AI overhead tests"
+	@echo "  clean   - Remove build artifacts"
+	@echo "  help    - Show this help message"
