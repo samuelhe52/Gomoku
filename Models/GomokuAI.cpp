@@ -6,7 +6,9 @@
 #include "BoardManager.h"
 
 GomokuAI::GomokuAI(const char color, const int maxDepth)
-    : _color(color), _maxDepth(maxDepth) {};
+    : _color(color), _maxDepth(maxDepth) {
+        threadPool.setMaxThreadCount(threadCount);
+    };
 
 BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) const {
     if (QThread::currentThread()->isInterruptionRequested()) {
@@ -17,20 +19,7 @@ BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) const {
     }
 
     BoardManager simulatedBoard = boardManager;
-    return minimaxAlphaBeta(simulatedBoard, _maxDepth, true,
-                            std::numeric_limits<int>::min(),
-                            std::numeric_limits<int>::max()).second;
-}
-
-BoardPosition GomokuAI::randomMove(const BoardManager &boardManager) const {
-    srand(time(nullptr));
-    // Placeholder: choose random available cell
-    int randomRow, randomCol;
-    do {
-        randomRow = rand() % BOARD_SIZE;
-        randomCol = rand() % BOARD_SIZE;
-    } while (!boardManager.isValidMove({randomRow, randomCol}));
-    return {randomRow, randomCol};
+    return minimaxAlphaBetaRootParallel(simulatedBoard, _maxDepth);
 }
 
 bool GomokuAI::wouldWin(const BoardManager& boardManager,
@@ -312,70 +301,130 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
     int depth,
     bool isMaximizing,
     int alpha,
-    int beta) const {
-        if (QThread::currentThread()->isInterruptionRequested()) {
-            return {0, {-1, -1}};
+    int beta
+) const {
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        return {0, {-1, -1}};
+    }
+    char winner = boardManager.checkWinner();
+    if (depth == 0 || winner != EMPTY) {
+        if (winner == _color) {
+            // Prefer immediate wins
+            return {std::numeric_limits<int>::max() / 2 + 10000, {}};
+        } else if (winner == getOpponent(_color)) {
+            return {std::numeric_limits<int>::min() / 2 - 10000, {}};
         }
-        char winner = boardManager.checkWinner();
-        if (depth == 0 || winner != EMPTY) {
-            if (winner == _color) {
-                // Prefer immediate wins
-                return {std::numeric_limits<int>::max() / 2 + 10000, {}};
-            } else if (winner == getOpponent(_color)) {
-                return {std::numeric_limits<int>::min() / 2 - 10000, {}};
-            }
-            // Always evaluate from the AI's perspective
-            return {evaluate(boardManager, _color), {}};
-        }
+        // Always evaluate from the AI's perspective
+        return {evaluate(boardManager, _color), {}};
+    }
 
-        BoardPosition bestMove;
-        auto moves = candidateMoves(boardManager);
+    BoardPosition bestMove;
+    auto moves = candidateMoves(boardManager);
+    
+    if (isMaximizing) {
+        int maxEval = std::numeric_limits<int>::min();
+
+        for (const auto& pos : moves) {
+            boardManager.makeMove(pos);
+            auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, alpha, beta);
+            boardManager.undoMove();
+            
+            if (eval > maxEval) {
+                maxEval = eval;
+                bestMove = pos;
+            }
+            
+            alpha = std::max(alpha, eval);
+            // beta comes from the parent and records the smallest value found by the parent so far
+            // so if beta <= alpha, no need to explore further, because the parent will not choose this path
+            // (parent is minimizing player)
+            if (beta <= alpha) {
+                break; // Alpha cutoff
+            }
+        }
         
-        if (isMaximizing) {
-            int maxEval = std::numeric_limits<int>::min();
+        return {maxEval, bestMove};
+    } else {
+        int minEval = std::numeric_limits<int>::max();
 
-            for (const auto& pos : moves) {
-                boardManager.makeMove(pos);
-                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, false, alpha, beta);
-                boardManager.undoMove();
-                
-                if (eval > maxEval) {
-                    maxEval = eval;
-                    bestMove = pos;
-                }
-                
-                alpha = std::max(alpha, eval);
-                // beta comes from the parent and records the smallest value found by the parent so far
+        for (const auto& pos : moves) {
+            boardManager.makeMove(pos);
+            auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, alpha, beta);
+            boardManager.undoMove();
+            
+            if (eval < minEval) {
+                minEval = eval;
+                bestMove = pos;
+            }
+            
+            beta = std::min(beta, eval);
+            if (beta <= alpha) {
+                // alpha comes from the parent and records the largest value found by the parent so far
                 // so if beta <= alpha, no need to explore further, because the parent will not choose this path
-                // (parent is minimizing player)
-                if (beta <= alpha) {
-                    break; // Alpha cutoff
-                }
+                // (parent is maximizing player)
+                break; // Beta cutoff
             }
-            
-            return {maxEval, bestMove};
-        } else {
-            int minEval = std::numeric_limits<int>::max();
-
-            for (const auto& pos : moves) {
-                boardManager.makeMove(pos);
-                auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1, true, alpha, beta);
-                boardManager.undoMove();
-                
-                if (eval < minEval) {
-                    minEval = eval;
-                    bestMove = pos;
-                }
-                
-                beta = std::min(beta, eval);
-                if (beta <= alpha) {
-                    // alpha comes from the parent and records the largest value found by the parent so far
-                    // so if beta <= alpha, no need to explore further, because the parent will not choose this path
-                    // (parent is maximizing player)
-                    break; // Beta cutoff
-                }
-            }
-            
-            return {minEval, bestMove};
         }
+        
+        return {minEval, bestMove};
+    }
+}
+
+BoardPosition GomokuAI::minimaxAlphaBetaRootParallel(
+    BoardManager& boardManager,
+    int depth
+) const {
+    // We parallelize only the root level of the minimax tree.
+    // Divide the possible moves into chunks, where each chunk is processed in parallel.
+    // After processing a chunk, update a global alpha based on the results from that chunk.
+    // This to some extent preserves pruning: pruning is still valid across chunks;
+    // But within each chunk, no pruning occurs.
+
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        return {-1, -1};
+    }
+
+    BoardPosition bestMove;
+    auto moves = candidateMoves(boardManager);
+    // Each chunk should have threadCount moves to maximize parallelism
+    auto chunks = splitIntoChunks(moves, threadCount);
+
+    int globalAlpha = std::numeric_limits<int>::min();
+
+    for (const auto& chunk : chunks) {
+        auto results = QtConcurrent::blockingMapped(
+            &threadPool,
+            chunk,
+            [this, &boardManager, depth, globalAlpha](const BoardPosition& pos) {
+                BoardManager simulatedBoard = boardManager;
+                simulatedBoard.makeMove(pos);
+                auto [eval, _] = minimaxAlphaBeta(
+                    simulatedBoard,
+                    depth - 1,
+                    false,
+                    globalAlpha,
+                    std::numeric_limits<int>::max()
+                );
+                return std::make_pair(eval, pos);
+            }
+        );
+
+        // Find the best move in this chunk
+        int chunkMaxEval = std::numeric_limits<int>::min();
+        BoardPosition chunkBestMove;
+        for (const auto& [eval, pos] : results) {
+            if (eval > chunkMaxEval) {
+                chunkMaxEval = eval;
+                chunkBestMove = pos;
+            }
+        }
+
+        // Update global alpha for next chunk
+        if (chunkMaxEval > globalAlpha) {
+            globalAlpha = chunkMaxEval;
+            bestMove = chunkBestMove;
+        }
+    }
+
+    return bestMove;
 }

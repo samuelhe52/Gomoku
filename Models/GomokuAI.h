@@ -9,13 +9,14 @@
 #include <vector>
 #include <future>
 #include <QThread>
+#include <QtConcurrent/QtConcurrent>
+#include <QThreadPool>
 
 class GomokuAI {
 public:
     explicit GomokuAI(char color, int maxDepth = MAX_DEPTH);
 
     BoardPosition getBestMove(const BoardManager& boardManager) const;
-    BoardPosition randomMove(const BoardManager& boardManager) const;
 
     void setColor(char c) { _color = c; }
     [[nodiscard]] char getColor() const { return _color; }
@@ -51,7 +52,33 @@ private:
     char _color; // BLACK(1) or WHITE(2)
     int _maxDepth;
 
+    int threadCount = QThread::idealThreadCount();
+    // Use mutable to allow const methods to use the thread pool
+    mutable QThreadPool threadPool;
+
     [[nodiscard]] static char getOpponent(char player) { return (player == BLACK) ? WHITE : BLACK; }
+
+    /// @brief Splits a vector into smaller chunks of specified size.
+    /// @param content the vector to be split into chunks.
+    /// @param chunkSize the desired size of each chunk. 
+    /// @return The vector of chunks.
+    /// @note The last chunk may be smaller if the total size is not divisible by chunkSize.
+    template<typename T>
+    [[nodiscard]] inline std::vector<std::vector<T>> splitIntoChunks(
+        const std::vector<T>& content,
+        int chunkSize
+    ) const {
+        std::vector<std::vector<T>> chunks;
+        int totalSize = static_cast<int>(content.size());
+
+        for (int i = 0; i < totalSize; i += chunkSize) {
+            auto startIter = content.begin() + i;
+            auto endIter = (i + chunkSize < totalSize) ? (startIter + chunkSize) : content.end();
+            chunks.emplace_back(startIter, endIter);
+        }
+
+        return chunks;
+    }
 
     [[nodiscard]] bool wouldWin(const BoardManager& boardManager,
                                 BoardPosition position,
@@ -111,6 +138,13 @@ private:
         bool isMaximizing,
         int alpha,
         int beta
+    ) const;
+
+    // minimax with alpha-beta pruning and parallelizing the root level.
+    // Returns a pair of (score, best move)
+    [[nodiscard]] BoardPosition minimaxAlphaBetaRootParallel(
+        BoardManager& boardManager,
+        int depth
     ) const;
 };
 
