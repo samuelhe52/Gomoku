@@ -52,7 +52,8 @@ private:
     char _color; // BLACK(1) or WHITE(2)
     int _maxDepth;
 
-    int threadCount = QThread::idealThreadCount();
+    // Cap the thread count to ensure pruning efficiency
+    int threadCount = std::min(QThread::idealThreadCount(), 12);
     // Use mutable to allow const methods to use the thread pool
     mutable QThreadPool threadPool;
 

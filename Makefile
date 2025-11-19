@@ -1,4 +1,4 @@
-.PHONY: build launch perf test clean help
+.PHONY: build launch perf test clean help pdf
 build:
 	mkdir -p cmake-build-release
 	cd cmake-build-release && cmake -DCMAKE_BUILD_TYPE=Release ../
@@ -15,6 +15,9 @@ test:
 
 clean:
 	rm -rf cmake-build-release
+
+pdf:
+	@./Report/generate-pdf.sh
 
 help:
 	@echo "Available commands:"
