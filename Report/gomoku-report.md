@@ -1,9 +1,6 @@
 <!-- markdownlint-disable MD041 MD007 MD031 MD032 MD025 MD001 MD013 -->
 
 ---
-title: "AI 五子棋项目报告"
-author: "何子谦"
-date: "2025-11-19"
 documentclass: article
 papersize: a4
 lang: zh-CN
@@ -12,6 +9,8 @@ geometry:
 fontsize: 12pt
 linestretch: 1.5
 numbersections: true
+toc: false
+toc-depth: 3
 colorlinks: true
 linkcolor: blue
 urlcolor: blue
@@ -29,6 +28,26 @@ header-includes:
 ---
 
 <!-- markdownlint-enable MD041 MD007 MD031 MD032 MD025 MD001 -->
+
+\pagenumbering{gobble}
+\begin{titlepage}
+  \centering
+  \vspace*{\fill}
+  {\LARGE \textbf{AI 五子棋项目报告}\par}
+  \vspace{0.25cm}
+  {\large 何子谦\par}
+  \vspace{0.15cm}
+  {\large 2025-11-19\par}
+  \vspace*{\fill}
+  \vspace{5cm}
+\end{titlepage}
+
+\clearpage
+\tableofcontents
+
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
 
 # 需求分析
 
@@ -343,6 +362,15 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 
 - [DKM - Gomoku Online](https://dkmgames.com/Gomoku/index.php)
 - [Gomoku.com - Challenge AI Opponents](https://gomoku.com/single-player/)
+
+**本项目 AI 在深度 7 下与三个线上五子棋 AI 进行了对战测试，无论先手还是后手均能取胜。**由于使用的三个线上 AI 及本项目 AI 算法实现均具有确定性，因此多次测试结果一致，无法给出胜率统计数据。但从对战结果来看，本项目 AI 在当前实现下已达到较高水平。
+
+在与人类玩家的对局中，本项目 AI 有败绩，但整体表现较佳。很遗憾，未能系统记录人类对局数据，因此无法给出具体胜率统计。
+
+注：使用的线上 AI 包括：
+
+- [DKM - Gomoku Online](https://dkmgames.com/Gomoku/index.php)
+- [Gomoku.com - Challenge AI Opponents](https://gomoku.com/single-player/)
 - [YJYao Gomoku](https://gomoku.yjyao.com)
 
 ## 资源占用
@@ -509,15 +537,6 @@ BoardPosition GomokuAI::minimaxAlphaBetaRootParallel(
 
   BoardPosition bestMove;
   auto moves = candidateMoves(boardManager);
-  auto chunks = splitIntoChunks(moves, threadCount);
-  int globalAlpha = std::numeric_limits<int>::min();
-
-  for (const auto& chunk : chunks) {
-    auto results = QtConcurrent::blockingMapped(
-      &threadPool, chunk,
-      [this,
-       &boardManager, 
-       depth,
        globalAlpha](const BoardPosition& pos) {
         BoardManager simulatedBoard = boardManager;
         simulatedBoard.makeMove(pos);
