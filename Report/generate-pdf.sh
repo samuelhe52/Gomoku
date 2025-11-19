@@ -7,4 +7,5 @@ cd "$SCRIPT_DIR" || exit 1
 # Include LaTeX header to force first-line indentation in paragraphs
 pandoc gomoku-report.md \
 	-o gomoku-report.pdf \
-	--pdf-engine xelatex
+	--pdf-engine xelatex \
+	--pdf-engine-opt=-output-driver="xdvipdfmx -z 0"

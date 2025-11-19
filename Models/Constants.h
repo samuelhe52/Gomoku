@@ -12,3 +12,6 @@
 
 #define MAX_DEPTH 7
 #define MAX_CANDIDATE_RADIUS 2
+
+// Toggle parallelization for performance testing
+#define ENABLE_PARALLELIZATION 1

@@ -3,7 +3,7 @@
 ---
 title: "AI 五子棋项目报告"
 author: "何子谦"
-date: "2025-11-17"
+date: "2025-11-19"
 documentclass: article
 papersize: a4
 lang: zh-CN
@@ -23,6 +23,9 @@ header-includes:
   - |
     \usepackage{indentfirst}
     \setlength{\parindent}{2em}
+    \usepackage{graphicx}
+    \usepackage{xcolor}
+    \usepackage{microtype}
 ---
 
 <!-- markdownlint-enable MD041 MD007 MD031 MD032 MD025 MD001 -->
@@ -226,25 +229,126 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 
 注：测试环境为 Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存，macOS Sequoia 15.7.2。
 
+\newpage
+
 # 测试结果
 
 ## 运行截图
+
+\vspace{1em}
+
+\begin{center}
+% First row of images
+\begin{minipage}[t]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{imgs/main-window.jpg}
+    \vspace{0.3em}
+    \textcolor{gray}{\small 主界面}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{imgs/in-game.jpg}
+    \vspace{0.3em}
+    \textcolor{gray}{\small 游戏中画面}
+\end{minipage}
+
+\vspace{1.5em}
+
+% Second row of images
+\begin{minipage}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{imgs/color-chooser.jpg}
+    \vspace{0.3em}
+    \textcolor{gray}{\small 选择先后手}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{imgs/thinking.jpg}
+    \vspace{0.3em}
+    \textcolor{gray}{\small AI 计算中提示}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{imgs/game-over.jpg}
+    \vspace{0.3em}
+    \textcolor{gray}{\small 游戏结束提示}
+\end{minipage}
+\end{center}
 
 ## 性能测试
 
 测试环境：Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存，macOS Sequoia 15.7.2。
 
 - `Tests/GomokuAIParallelizationTests.cpp`：多场景 best move 与耗时统计、异步开销与单元评估基准。
-- `Tests/GomokuAIOverHeadTests.cpp`：`std::async` 开销与单点评估耗时基准。
-- 备注：后续可在此记录不同硬件上的实际耗时与线程规模对比。
+- `Tests/GomokuAIOverHeadTests.cpp`：研究 `std::async` 开销与对单个位置评估的耗时。
+
+### 多场景决策时间统计
+
+为验证并行化优化的有效性，本项目在四种典型对局场景下对比了顺序执行（Sequential）与根节点并行化（Parallel）两种实现方式在不同搜索深度下的性能表现。测试场景包括：
+
+1. **First Move after Center**：棋盘仅有一子
+2. **Early Opening Pressure**：棋盘有 6 子
+3. **Midgame Crossfire**：棋盘有 9 子
+4. **Late-Game Threat Net**：棋盘有 12 子
+
+该测试使用 `Tests/GomokuAIParallelizationTests.cpp` 得出时间统计。
+
+#### 深度 5 性能对比
+
+| 场景                      | Sequential (ms) | Parallel (ms) | 加速比 |
+|---------------------------|-----------------|---------------|--------|
+| First Move after Center   | 177.87          | 66.13         | 2.69x  |
+| Early Opening Pressure    | 240.01          | 75.46         | 3.18x  |
+| Midgame Crossfire         | 14.18           | 16.45         | 0.86x  |
+| Late-Game Threat Net      | 344.77          | 123.69        | 2.79x  |
+| **平均**                  | **194.21**      | **70.43**     | **2.76x** |
+
+#### 深度 7 性能对比
+
+| 场景                      | Sequential (ms) | Parallel (ms) | 加速比  |
+|---------------------------|-----------------|---------------|---------|
+| First Move after Center   | 5127.27         | 2595.73       | 1.98x   |
+| Early Opening Pressure    | 10615.51        | 3424.44       | 3.10x   |
+| Midgame Crossfire         | 532.15          | 572.93        | 0.93x   |
+| Late-Game Threat Net      | 17264.11        | 6882.82       | 2.51x   |
+| **平均**                  | **8384.76**     | **3368.98**   | **2.49x** |
+
+在深度 5 和深度 7 下，并行化实现分别实现了平均 2.76x 和 2.49x 的加速比，可以看出**根节点并行化在大多数场景下能带来至少 2 倍的性能提升。**但在某些特定中局场景（如 Midgame Crossfire）下，由于候选走法中包含能使某方立即胜利的走法（[见候选位置缓存、查找及排序](#候选位置缓存查找及排序)），线程调度开销反而导致并行化性能略微劣化。
+
+### `std::async` 线程开销测试
+
+为了理解为什么在评估函数中使用并行会导致性能劣化（见[关于对 `evaluate()` 并行化的尝试](#关于对-evaluate-并行化的尝试)），本项目测量了 `std::async` 创建和销毁线程的开销，以及单个位置评估的计算时间。
+
+通过 `Tests/GomokuAIOverHeadTests.cpp` 中的测试代码，得到以下结果：
+
+- **平均 async 任务创建+销毁开销**：21.86 μs
+- **平均单个位置评估耗时**：0.0014 μs
+
+测试结果清晰地展示了为何细粒度并行化会导致性能劣化：线程创建/销毁的开销（21.86 μs）是单个位置评估耗时（0.0014 μs）的 **15400 倍**。假设将整个棋盘（225 个位置）分为 4 个线程处理，每个线程处理约 60 个位置，则单线程计算总耗时为 `225 × 0.0014 μs = 0.315 μs`，**这仍然远小于单个线程创建与合并的开销。**即使后续引入线程池减少线程优化开销，仍然无法弥补如此巨大的计算与任调度/线程同步开销的差距。
+
+由此可以得出结论：**并行化的粒度选择至关重要。**只有当单个任务的计算时间远大于线程开销时（如本项目中的根节点分支搜索），并行化才能带来净收益。对于高频、细粒度的函数（如评估函数），顺序执行反而更高效。
 
 ## 棋力评估
 
-- 当前未集成自对弈模式；建议通过脚本驱动 `GameManager`/`GomokuAI` 进行离线对弈评测。
+本项目 AI 基于 minimax 搜索 + alpha-beta 剪枝实现，在深度 7 的搜索下表现出良好的棋力。AI 能够准确识别对手的连三、连四等威胁模式，并在 `candidateMoves()` 中优先考虑胜负手和威胁点，确保不漏关键防守；同时，评估函数综合考虑了多种棋型模式及 Center Control，能够在中后期复杂局面下做出合理判断。在多次与人类玩家对局中，**AI 展现出较有攻击性的策略**，善于在被威胁时通过制造同等威胁来分散对手注意力，从而寻找突破口。目前没有发现 AI 出现业余人士能看出明显失误的情况。但在较复杂的局面下，由于搜索深度的限制以及评估函数的不准确性，AI 仍有可能出现判断失误导致被绝杀。
+
+**本项目 AI 在深度 7 下与三个线上五子棋 AI 进行了对战测试，无论先手还是后手均能取胜。**由于使用的三个线上 AI 及本项目 AI 算法实现均具有确定性，因此多次测试结果一致，无法给出胜率统计数据。但从对战结果来看，本项目 AI 在当前实现下已达到较高水平。
+
+在与人类玩家的对局中，本项目 AI 有败绩，但整体表现较佳。很遗憾，未能系统记录人类对局数据，因此无法给出具体胜率统计。
+
+注：使用的线上 AI 包括：
+
+- [DKM - Gomoku Online](https://dkmgames.com/Gomoku/index.php)
+- [Gomoku.com - Challenge AI Opponents](https://gomoku.com/single-player/)
+- [YJYao Gomoku](https://gomoku.yjyao.com)
 
 ## 资源占用
 
-- 待补：长局对战的内存曲线与 CPU 峰值；重置频繁下的线程回收情况。
+- CPU 占用：在示例测试环境中（6P + 2E），AI 计算时可见多个核心被充分利用，CPU 总使用率最高可达 80%。
+- 内存占用：稳定在40 MB 以内。
 
 # 实现
 
@@ -400,7 +504,7 @@ BoardPosition GomokuAI::minimaxAlphaBetaRootParallel(
   BoardManager& boardManager, int depth
 ) const {
   if (QThread::currentThread()->isInterruptionRequested()) {
-    return {-1, -1}
+    return {-1, -1};
   }
 
   BoardPosition bestMove;

@@ -19,7 +19,20 @@ BoardPosition GomokuAI::getBestMove(const BoardManager &boardManager) const {
     }
 
     BoardManager simulatedBoard = boardManager;
+    
+#if ENABLE_PARALLELIZATION
     return minimaxAlphaBetaRootParallel(simulatedBoard, _maxDepth);
+#else
+    // Sequential mode: call minimax directly from root
+    auto [_, bestMove] = minimaxAlphaBeta(
+        simulatedBoard,
+        _maxDepth,
+        true,
+        std::numeric_limits<int>::min(),
+        std::numeric_limits<int>::max()
+    );
+    return bestMove;
+#endif
 }
 
 bool GomokuAI::wouldWin(const BoardManager& boardManager,
