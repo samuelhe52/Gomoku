@@ -151,7 +151,7 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 ### 候选位置缓存、查找及排序
 
 - 候选来源：`BoardManager` 维护 `candidateMovesCache` 与 `candidateMap`。
-  - 缓存使用 `(std::unordered_set<BoardPosition>)` 实现快速插入/删除
+  - 缓存使用 `(std::unordered_set<BoardPosition>)` 实现快速插入/删除；
   - `candidateMap` 使用 `bool[BOARD_SIZE][BOARD_SIZE]` 实现 O(1) 级查询位置可用性。
 - 缓存更新策略：
   - 每次落子后，将该点周围 `[row±R, col±R] (R = SEARCH_RADIUS)` 范围内的空位加入候选；撤销时用 `reverseCandidatesCache()` 回滚操作。（具体回滚逻辑[见落子与撤销落子](#落子与撤销落子)）
@@ -160,7 +160,7 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
     - 为 `BoardPosition` 实现高效率 `hash()` 函数（`(row << 4) | col`），提升哈希表性能。
 - `GomokuAI` 中进行候选排序（`GomokuAI::candidateMoves`）。**候选排序使 alpha-beta 剪枝发生率大幅提高**，具体策略如下：
   - 若存在“使任意一方立即取胜”的走法，直接返回单一候选（跳过其余评估）。
-  - 其次收集“威胁点”（连三/连四且前/后不被阻断）
+  - 其次收集“威胁点”（连三/连四且前/后不被阻断）；
   - 最后按中心距离对一般点排序。
 - 使用 `candidateMovesCache.reserve(64)` 于初始化时预分配空间，减少动态扩容开销。
 
@@ -173,14 +173,14 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 - `movesHistory`：记录落子历史的栈（`std::vector<MoveRecord>`），用于支持 `undoMove()`。其中 `MoveRecord` 结构体包含落子位置及候选缓存变更信息 `CandidatesDelta`。
 
 - `makeMove(BoardPosition)`：
-  - 内部 `_makeMove()` 将棋子落于 `board[row][col]`，切换 `_blackTurn`
+  - 内部 `_makeMove()` 将棋子落于 `board[row][col]`，切换 `_blackTurn`；
   - 更新 `movesHistory`；
   - 同步调用 `updateCandidatesCache(pos)` 维护候选缓存；
   - 返回 `checkWinner()` 的结果（`EMPTY/BLACK/WHITE`）。
 
 - `undoMove()`：
-  - 弹出 `movesHistory` 栈顶元素
-  - 将该位置改为 `EMPTY`
+  - 弹出 `movesHistory` 栈顶元素；
+  - 将该位置改为 `EMPTY`；
   - 调用 `reverseCandidatesCache(delta, position)` 精确回滚候选缓存；
   - 最后切换 `_blackTurn`， 回到之前一手的行棋方。
 
@@ -240,7 +240,7 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 
 - Alpha-Beta 剪枝
 - `candidateMoves` 中进行候选排序，提高剪枝发生率。（2-3x 加速）
-- 根节点并行、线程池（`QThreadPool`），线程数上限 `min(idealThreadCount, 12)`。（2x 加速）
+- 根节点并行、线程池（`QThreadPool`），线程数上限 `min(idealThreadCount, 12)`。（2x 加速）。
 - 跨块 Alpha 维护全局 `globalAlpha`，实现跨 chunk 剪枝。
 - 缓存候选位置，避免每次生成候选时遍历全盘。
 
@@ -789,7 +789,7 @@ make help   # 帮助信息
 
 ## 可改进方向
 
-- 引入 Zobrist Hashing 与 Bitboard 等进一步优化性能
+- 引入 Zobrist Hashing 与 Bitboard 等进一步优化性能。
 - 探索 MCTS 等其他搜索算法，或结合深度学习提升棋力。
 - 实现更多游戏规则与模式，如禁手、悔棋、人人对战、自对弈等。
 - 增强文档与测试覆盖。
