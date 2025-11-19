@@ -21,8 +21,8 @@ CJKoptions: Scale=0.95
 monofont: "JetBrains Mono"
 header-includes:
   - |
-      \usepackage{indentfirst}
-      \setlength{\parindent}{2em}
+    \usepackage{indentfirst}
+    \setlength{\parindent}{2em}
 ---
 
 <!-- markdownlint-enable MD041 MD007 MD031 MD032 MD025 MD001 -->
@@ -228,41 +228,413 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 
 # 实现
 
-## 关键类代码摘录
+## 搜索算法摘录
 
-- `BoardManager`：棋盘存储、落子合法性、胜负检测
-- `GameManager`（Controller）：状态机、异步调用 AI、取消机制
-- `GomokuAI`：候选生成、评估函数、搜索入口
+```cpp
+// 空盘走中心，根层并行搜索
+BoardPosition GomokuAI::getBestMove(
+  const BoardManager &boardManager
+) const {
+  if (QThread::currentThread()->isInterruptionRequested()) {
+    return {-1, -1};
+  }
+  if (boardManager.isBoardEmpty()) {
+    return {BOARD_SIZE / 2, BOARD_SIZE / 2};
+  }
 
-## 线程与任务提交
+  BoardManager simulatedBoard = boardManager;
+  return minimaxAlphaBetaRootParallel(simulatedBoard, _maxDepth);
+}
+```
 
-- `GameWidget::setupGameManager` 将控制器 `GameManager` 移至子线程，注册跨线程 `MoveResult`，连接信号后启动线程。
-- 重置流程：请求中断 → 断开连接 → 退出等待 → 重建 `GameManager/QThread`。
+```cpp
+// 候选排序（立即胜/阻断威胁/中心优先）
+std::vector<BoardPosition> GomokuAI::candidateMoves(
+  const BoardManager& boardManager
+) const {
+  std::vector<BoardPosition> threatMoves;
+  std::vector<BoardPosition> moves;
 
-## UI 结构
+  for (const auto& pos : boardManager.getCandidateMoves()) {
+    if (wouldWin(boardManager, pos, _color) ||
+      wouldWin(boardManager, pos, getOpponent(_color))) {
+      return {pos};
+    } else if (posesThreat(boardManager, pos, _color) ||
+        posesThreat(boardManager, pos, getOpponent(_color))) {
+      threatMoves.push_back(pos);
+    } else {
+      moves.push_back(pos);
+    }
+  }
 
-- 主窗口布局：控制区 + 棋盘绘制区 + 状态信息
-- `BoardWidget` 绘制逻辑：坐标换算、鼠标事件
+  std::sort(
+    moves.begin(),
+    moves.end(),
+    [&](const BoardPosition& a, const BoardPosition& b) {
+      return boardManager.centerManhattanDistance[a.row][a.col] < 
+        boardManager.centerManhattanDistance[b.row][b.col];
+    }
+  );
 
-## 信号/槽示例
+  threatMoves.insert(threatMoves.end(), moves.begin(), moves.end());
+  return threatMoves;
+}
+```
 
-- `GameManager::moveApplied(MoveResult)` → `BoardWidget::onMoveApplied(MoveResult)` 刷新棋盘与胜负状态。
-- `BoardWidget::cellSelected(int,int)` → `GameWidget::handleHumanMove(BoardPosition)` → `GameManager::handleHumanMove(BoardPosition)`。
-- `ColorChooserWidget::colorChosen(bool)` → `GameWidget::startGame(bool)` → `GameManager::startNewGame(char)`/`makeAIFirstMove()`。
+```cpp
+// 评估函数（始终以 AI 视角评分）
+int GomokuAI::evaluate(
+  const BoardManager &boardManager,
+  const char player
+) const {
+  const char opponent = getOpponent(player);
+  // pSum: playerSummary, oSum: opponentSummary
+  const auto [pSum, oSum] = evaluateSequences(boardManager);
 
-## 配置与常量
+  if (pSum.openFours > 0) {
+    return 400000 + pSum.openFours * 2000;
+  }
+  if (oSum.openFours > 0) {
+    return -400000 - oSum.openFours * 2000;
+  }
 
-- `BOARD_SIZE=15`，`EMPTY/BLACK/WHITE`，`MAX_DEPTH=7`，`MAX_CANDIDATE_RADIUS=2`。
+  int score = pSum.score - oSum.score;
+
+  const int openThreeBonus = 15000;
+  score += openThreeBonus * (pSum.openThrees - oSum.openThrees);
+
+  const int doubleThreeBonus = 60000;
+  if (pSum.openThrees >= 2) score += doubleThreeBonus;
+  if (oSum.openThrees >= 2) score -= doubleThreeBonus;
+
+  const int semiOpenThreeBonus = 4000;
+  score += semiOpenThreeBonus * (pSum.semiOpenThrees - oSum.semiOpenThrees);
+
+  const int semiOpenFourBonus = 20000;
+  score += semiOpenFourBonus * (pSum.semiOpenFours - oSum.semiOpenFours);
+
+  const int centerWeight = 2;
+  const int centerScore = centerControlBias(boardManager, player)
+    - centerControlBias(boardManager, opponent);
+  score += centerWeight * centerScore;
+  return score;
+}
+```
+
+```cpp
+// minimax + α-β 剪枝（主递归体）
+std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
+  BoardManager& boardManager,
+  int depth,
+  bool isMaximizing,
+  int alpha,
+  int beta
+) const {
+  if (QThread::currentThread()->isInterruptionRequested()) {
+    return {0, {-1, -1}};
+  }
+  char winner = boardManager.checkWinner();
+  if (depth == 0 || winner != EMPTY) {
+    if (winner == _color) { 
+      return {std::numeric_limits<int>::max()/2 + 10000, {}};
+    }
+    if (winner == getOpponent(_color)) {
+      return {std::numeric_limits<int>::min()/2 - 10000, {}};
+    }
+    return {evaluate(boardManager, _color), {}};
+  }
+
+  BoardPosition bestMove;
+  auto moves = candidateMoves(boardManager);
+  if (isMaximizing) {
+    int maxEval = std::numeric_limits<int>::min();
+    for (const auto& pos : moves) {
+      boardManager.makeMove(pos);
+      auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1,
+                                        false, alpha, beta);
+      boardManager.undoMove();
+      if (eval > maxEval) { maxEval = eval; bestMove = pos; }
+      alpha = std::max(alpha, eval);
+      if (beta <= alpha) break;
+    }
+    return {maxEval, bestMove};
+  } else {
+    int minEval = std::numeric_limits<int>::max();
+    for (const auto& pos : moves) {
+      boardManager.makeMove(pos);
+      auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1,
+                                        true, alpha, beta);
+      boardManager.undoMove();
+      if (eval < minEval) { minEval = eval; bestMove = pos; }
+      beta = std::min(beta, eval);
+      if (beta <= alpha) break;
+    }
+    return {minEval, bestMove};
+  }
+}
+```
+
+```cpp
+// 根节点分块并行（QtConcurrent + globalAlpha）
+BoardPosition GomokuAI::minimaxAlphaBetaRootParallel(
+  BoardManager& boardManager, int depth
+) const {
+  if (QThread::currentThread()->isInterruptionRequested()) {
+    return {-1, -1}
+  }
+
+  BoardPosition bestMove;
+  auto moves = candidateMoves(boardManager);
+  auto chunks = splitIntoChunks(moves, threadCount);
+  int globalAlpha = std::numeric_limits<int>::min();
+
+  for (const auto& chunk : chunks) {
+    auto results = QtConcurrent::blockingMapped(
+      &threadPool, chunk,
+      [this,
+       &boardManager, 
+       depth,
+       globalAlpha](const BoardPosition& pos) {
+        BoardManager simulatedBoard = boardManager;
+        simulatedBoard.makeMove(pos);
+        auto [eval, _] = minimaxAlphaBeta(
+          simulatedBoard, depth - 1, false, globalAlpha,
+          std::numeric_limits<int>::max()
+        );
+        return std::make_pair(eval, pos);
+      }
+    );
+
+    int chunkMaxEval = std::numeric_limits<int>::min();
+    BoardPosition chunkBestMove;
+    for (const auto& [eval, pos] : results) {
+      if (eval > chunkMaxEval) { 
+        chunkMaxEval = eval;
+        chunkBestMove = pos; 
+      }
+    }
+    if (chunkMaxEval > globalAlpha) { 
+      globalAlpha = chunkMaxEval;
+      bestMove = chunkBestMove; 
+    }
+  }
+  return bestMove;
+}
+```
+
+## 棋盘与候选缓存
+
+```cpp
+// 候选缓存更新
+BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
+  const BoardPosition pos
+) {
+  CandidatesDelta lastRecord;
+  lastRecord.removedFromCache = candidateMap[pos.row][pos.col];
+  candidateMovesCache.erase(pos);
+  candidateMap[pos.row][pos.col] = false;
+
+  const int r = MAX_CANDIDATE_RADIUS;
+  const int minRow = std::max(0, pos.row - r);
+  const int maxRow = std::min(BOARD_SIZE - 1, pos.row + r);
+  const int minCol = std::max(0, pos.col - r);
+  const int maxCol = std::min(BOARD_SIZE - 1, pos.col + r);
+
+  for (int newRow = minRow; newRow <= maxRow; ++newRow) {
+    for (int newCol = minCol; newCol <= maxCol; ++newCol) {
+      if ((newRow == pos.row && newCol == pos.col) ||
+        board[newRow][newCol] != EMPTY) continue;
+      if (!candidateMap[newRow][newCol]) {
+        BoardPosition newPos{newRow, newCol};
+        lastRecord.addedCandidates.push_back(newPos);
+        candidateMap[newRow][newCol] = true;
+      }
+    }
+  }
+  candidateMovesCache.insert(lastRecord.addedCandidates.begin(),
+                             lastRecord.addedCandidates.end());
+  return lastRecord;
+}
+
+// 候选缓存回滚
+void BoardManager::reverseCandidatesCache(
+  const CandidatesDelta& delta, BoardPosition moveUndone
+) {
+  for (const auto& candidate : delta.addedCandidates) {
+    candidateMovesCache.erase(candidate);
+    candidateMap[candidate.row][candidate.col] = false;
+  }
+  if (delta.removedFromCache) {
+    candidateMovesCache.insert(moveUndone);
+    candidateMap[moveUndone.row][moveUndone.col] = true;
+  }
+}
+```
+
+```cpp
+// 回滚落子
+void BoardManager::undoMove() {
+  if (movesHistory.empty()) return;
+  MoveRecord lastRecord = movesHistory.back();
+  BoardPosition position = lastRecord.position;
+  board[position.row][position.col] = EMPTY;
+  reverseCandidatesCache(lastRecord.candidatesDelta, position);
+  movesHistory.pop_back();
+  _blackTurn = !_blackTurn;
+}
+```
+
+## Controller
+
+```cpp
+// 创建新对局与人机回合推进
+void GameManager::startNewGame(const char humanColor) {
+  _humanColor = humanColor;
+  _aiColor = (humanColor == BLACK) ? WHITE : BLACK;
+  // 重新创建 AI 引擎实例以重置状态
+  _aiEngine = new GomokuAI(_aiColor);
+  // 重置游戏状态
+  initializeNewGameState();
+  // 若 AI 先手则立即落子
+  if (isAITurn()) { makeAIFirstMove(); }
+}
+
+void GameManager::handleHumanMove(const BoardPosition position) {
+  MoveResult result = playHumanMove(position);
+  if (!result.moveApplied) return;
+  // 人类落子后，发出信号更新 UI
+  emit moveApplied(result);
+  // 若游戏未结束且轮到 AI，则让 AI 落子
+  if (isAITurn() && result.winner == EMPTY && !result.boardIsFull) {
+    MoveResult aiResult = playAIMove();
+    if (aiResult.moveApplied) emit moveApplied(aiResult);
+  }
+}
+```
+
+## UI
+
+```cpp
+// 独立线程与信号槽连接
+void GameWidget::setupGameManager() {
+  gameManager = new GameManager();
+  gameThread = new QThread(this);
+  gameManager->moveToThread(gameThread);
+  qRegisterMetaType<MoveResult>("MoveResult");
+  connectGameManagerSignals();
+  connect(
+    gameThread, &QThread::finished,
+    gameManager, &QObject::deleteLater
+  );
+  connect(
+    gameThread, &QThread::finished,
+    gameThread, &QObject::deleteLater
+  );
+  gameThread->start();
+}
+
+void GameWidget::connectGameManagerSignals() {
+  connect(
+    this, &GameWidget::handleHumanMove,
+    gameManager, &GameManager::handleHumanMove
+  );
+
+  connect(
+    this, &GameWidget::startGame,
+    this, [this](bool playerIsBlack) {
+      const char humanColor = playerIsBlack ? BLACK : WHITE;
+      board->resetSnapshot();
+      QMetaObject::invokeMethod(
+        gameManager,
+        [gm = gameManager, humanColor]() { 
+          gm->startNewGame(humanColor);
+        }, 
+        Qt::QueuedConnection
+      );
+    });
+
+  connect(
+    gameManager, &GameManager::moveApplied,
+    board, &BoardWidget::onMoveApplied
+  );
+}
+```
+
+```cpp
+// 重置与协作式取消
+void GameWidget::connectResetButton() {
+  connect(resetButton, &QPushButton::clicked, this, [this]() {
+    if (gameThread) {
+      gameThread->requestInterruption();
+      disconnect(gameManager, nullptr, this, nullptr);
+      disconnect(gameManager, nullptr, board, nullptr);
+      gameThread->quit();
+      gameThread->wait();
+    }
+    setupGameManager();
+    board->resetSnapshot();
+    board->setThinking(false);
+    boardStack->setCurrentIndex(1);
+  });
+}
+```
+
+```cpp
+// 点击落子与棋盘绘制
+void BoardWidget::mousePressEvent(QMouseEvent *event) {
+  if (currentPlayerSnapshot != humanColor) { event->ignore(); return; }
+  if (event->button() != Qt::LeftButton) { 
+    QWidget::mousePressEvent(event); 
+    return; 
+  }
+  // 根据当前屏幕大小计算棋盘布局
+  // 并缓存在成员变量中 (`startX`, `startY`, `cellSize`)
+  calculateBoardLayout();
+  const int x = static_cast<int>(event->position().x());
+  const int y = static_cast<int>(event->position().y());
+  const int col = (x - startX + cellSize / 2) / cellSize;
+  const int row = (y - startY + cellSize / 2) / cellSize;
+  if (row < 0 || row >= BOARD_SIZE ||
+    col < 0 || col >= BOARD_SIZE) { event->ignore(); return; }
+  const int targetX = startX + col * cellSize;
+  const int targetY = startY + row * cellSize;
+  if (abs(x - targetX) > cellSize / 2.5 ||
+    abs(y - targetY) > cellSize / 2.5) { event->ignore(); return; }
+  emit cellSelected(row, col);
+  event->accept();
+}
+
+void BoardWidget::paintEvent(QPaintEvent *) {
+  QPainter painter(this);
+  painter.setRenderHint(QPainter::Antialiasing);
+  painter.fillRect(rect(), bgColor);
+  calculateBoardLayout();
+  drawBorders(painter);
+  drawGridLines(painter);
+  drawCriticalPoints(painter);
+  drawStones(painter);
+
+  // 绘制特殊状态下的覆盖层
+  if (boardFullSnapshot) drawWinnerOverlay(painter, "It's a Draw!");
+  if (winnerSnapshot != EMPTY)
+    drawWinnerOverlay(
+      painter,
+      winnerSnapshot == BLACK ? "Black Wins!" : "White Wins!"
+    );
+  if (!boardFullSnapshot && winnerSnapshot == EMPTY && thinking)
+    drawThinkingOverlay(painter);
+}
+```
 
 ## 构建与运行
 
 项目使用 CMakeLists.txt 进行构建，并通过 Makefile 简化构建操作。例如：
 
 ```bash
-make build # 构建项目
+make build  # 构建项目
 make launch # 运行项目
-make perf # 性能测试
-make help # 帮助信息
+make perf   # 性能测试
+make help   # 帮助信息
 ```
 
 # 测试结果

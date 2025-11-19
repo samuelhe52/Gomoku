@@ -51,8 +51,8 @@ void BoardWidget::mousePressEvent(QMouseEvent *event) {
     const int x = static_cast<int>(event->position().x());
     const int y = static_cast<int>(event->position().y());
 
-    const int col = static_cast<int>((x - startX + cellSize / 2) / cellSize);
-    const int row = static_cast<int>((y - startY + cellSize / 2) / cellSize);
+    const int col = (x - startX + cellSize / 2) / cellSize;
+    const int row = (y - startY + cellSize / 2) / cellSize;
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
         event->ignore();
         return;
