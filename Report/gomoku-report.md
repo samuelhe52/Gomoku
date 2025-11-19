@@ -226,6 +226,26 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 
 注：测试环境为 Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存，macOS Sequoia 15.7.2。
 
+# 测试结果
+
+## 运行截图
+
+## 性能测试
+
+测试环境：Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存，macOS Sequoia 15.7.2。
+
+- `Tests/GomokuAIParallelizationTests.cpp`：多场景 best move 与耗时统计、异步开销与单元评估基准。
+- `Tests/GomokuAIOverHeadTests.cpp`：`std::async` 开销与单点评估耗时基准。
+- 备注：后续可在此记录不同硬件上的实际耗时与线程规模对比。
+
+## 棋力评估
+
+- 当前未集成自对弈模式；建议通过脚本驱动 `GameManager`/`GomokuAI` 进行离线对弈评测。
+
+## 资源占用
+
+- 待补：长局对战的内存曲线与 CPU 峰值；重置频繁下的线程回收情况。
+
 # 实现
 
 ## 搜索算法摘录
@@ -637,34 +657,25 @@ make perf   # 性能测试
 make help   # 帮助信息
 ```
 
-# 测试结果
-
-## 运行截图
-
-## 性能测试
-
-测试环境：Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存，macOS Sequoia 15.7.2。
-
-- `Tests/GomokuAIParallelizationTests.cpp`：多场景 best move 与耗时统计、异步开销与单元评估基准。
-- `Tests/GomokuAIOverHeadTests.cpp`：`std::async` 开销与单点评估耗时基准。
-- 备注：后续可在此记录不同硬件上的实际耗时与线程规模对比。
-
-## 棋力评估
-
-- 当前未集成自对弈模式；建议通过脚本驱动 `GameManager`/`GomokuAI` 进行离线对弈评测。
-
-## 资源占用
-
-- 待补：长局对战的内存曲线与 CPU 峰值；重置频繁下的线程回收情况。
-
 # 分析与讨论
 
 ## 优势与不足
 
-- 优势：UI/逻辑解耦清晰；根节点并行带来可观加速；评估函数含威胁/中心控制。
-- 不足：无迭代加深/TT/哈希；禁手未实现；仅人机单模式；无悔棋。
+- 优势：良好 UI 响应性与用户体验；清晰模块划分与代码结构；有效的 alpha-beta 剪枝、候选排序、根节点并行化，显著提升 AI 计算性能；跨平台支持。
+- 不足：未使用 Iterative Deepening, Zobrist Hashing, Bitboard 等高阶优化技巧；未实现禁手等高级游戏规则；仅实现人机对战模式；无悔棋功能。
 
 ## 可改进方向
 
-- 引入 Zobrist 哈希与置换表；迭代加深 + 期望剪枝；更细粒度并行；自对弈训练参数。
-- 规则扩展：禁手/开局规则；支持人人与 AI 自对弈。
+- 引入 Zobrist Hashing 与 Bitboard 等进一步优化性能
+- 探索 MCTS 等其他搜索算法，或结合深度学习提升棋力。
+- 实现更多游戏规则与模式，如禁手、悔棋、人人对战、自对弈等。
+- 增强文档与测试覆盖。
+
+# 备注
+
+- 项目地址：[GitHub - Gomoku: Play Gomoku with AI.](https://github.com/samuelhe52/Gomoku)
+- 本文档中出现测试截图与性能数据均在如下环境下获得：
+  - 硬件：Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存
+  - 操作系统：macOS Sequoia 15.7.2
+  - 编译配置：Release 模式
+- 本文档为总结性设计文档，部分实现细节可能略有不同，具体可参考源码。
