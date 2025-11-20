@@ -4,49 +4,45 @@ A classic Gomoku (Five in a Row) game built with Qt6 and C++.
 
 [![Build](https://github.com/samuelhe52/Gomoku/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/samuelhe52/Gomoku/actions/workflows/cmake-multi-platform.yml)
 
-## Download & Run
+## Features
 
-### Windows
+- **Modern UI**: Qt 6 Widgets with custom painting and responsive layout.
+- **Smart AI**: Multithreaded AI opponent running in background threads.
+- **Cross-Platform**: Windows, macOS, and Linux support.
 
-1. Download the latest `gomoku-windows-latest` artifact from [GitHub Actions](https://github.com/samuelhe52/Gomoku/actions)
-2. Extract the ZIP file
-3. Double-click `Gomoku.exe` to run
+## Downloads
 
-### macOS / Linux
+Latest automated builds for Windows, macOS, and Linux are available as artifacts in [GitHub Actions](https://github.com/samuelhe52/Gomoku/actions).
 
-1. Download the latest artifact for your platform from [GitHub Actions](https://github.com/samuelhe52/Gomoku/actions)
-2. Extract and make executable: `chmod +x Gomoku`
-3. Run: `./Gomoku`
-4. **Requires Qt6 to be installed on your system**
-
-## Building from Source
+## Getting Started
 
 ### Prerequisites
 
-- CMake 3.31 or higher
-- Qt 6.8.0 or higher
-- C++17 compatible compiler
+- CMake 3.31+
+- Qt 6.8.0+
+- C++17 compiler
 
-### Build Instructions
+### Quick Build (Makefile)
 
 ```bash
-# Clone the repository
-git clone https://github.com/samuelhe52/Gomoku.git
-cd Gomoku
+make build    # Configure and build
+make launch   # Run the game
+```
 
-# Configure and build
+### Manual Build (CMake)
+
+```bash
 cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build cmake-build-release --config Release
 ```
 
-### Running the Game
+## Documentation & Structure
 
-- **Windows**: `cmake-build-release/Release/Gomoku.exe`
-- **macOS/Linux**: `cmake-build-release/Gomoku`
+- **`UI/`**: Visual elements (MainWindow, GameWidget).
+- **`Models/`**: Game logic and AI (BoardManager, GomokuAI).
+- **`docs/`**: Detailed architectural and performance documentation.
 
-## Deployment
-
-For detailed deployment instructions including creating standalone packages, see [DEPLOYMENT.md](DEPLOYMENT.md).
+See [AGENTS.md](AGENTS.md) for development guidelines and [DEPLOYMENT.md](DEPLOYMENT.md) for deployment.
 
 ## License
 
