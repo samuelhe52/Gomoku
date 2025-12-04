@@ -25,6 +25,8 @@ header-includes:
     \usepackage{graphicx}
     \usepackage{xcolor}
     \usepackage{microtype}
+    \usepackage{etoolbox}
+    \AtBeginEnvironment{Highlighting}{\footnotesize}
 ---
 
 <!-- markdownlint-enable MD041 MD007 MD031 MD032 MD025 MD001 -->
@@ -37,7 +39,7 @@ header-includes:
   \vspace{0.25cm}
   {\large 何子谦\par}
   \vspace{0.15cm}
-  {\large 2025-11-19\par}
+  {\large 2025-12-4\par}
   \vspace*{\fill}
   \vspace{5cm}
 \end{titlepage}
@@ -396,42 +398,9 @@ BoardPosition GomokuAI::getBestMove(
     return {BOARD_SIZE / 2, BOARD_SIZE / 2};
   }
 
+  // 复制 BoardManager 模拟搜索
   BoardManager simulatedBoard = boardManager;
   return minimaxAlphaBetaRootParallel(simulatedBoard, _maxDepth);
-}
-```
-
-```cpp
-// 候选排序（立即胜/阻断威胁/中心优先）
-std::vector<BoardPosition> GomokuAI::candidateMoves(
-  const BoardManager& boardManager
-) const {
-  std::vector<BoardPosition> threatMoves;
-  std::vector<BoardPosition> moves;
-
-  for (const auto& pos : boardManager.getCandidateMoves()) {
-    if (wouldWin(boardManager, pos, _color) ||
-      wouldWin(boardManager, pos, getOpponent(_color))) {
-      return {pos};
-    } else if (posesThreat(boardManager, pos, _color) ||
-        posesThreat(boardManager, pos, getOpponent(_color))) {
-      threatMoves.push_back(pos);
-    } else {
-      moves.push_back(pos);
-    }
-  }
-
-  std::sort(
-    moves.begin(),
-    moves.end(),
-    [&](const BoardPosition& a, const BoardPosition& b) {
-      return boardManager.centerManhattanDistance[a.row][a.col] < 
-        boardManager.centerManhattanDistance[b.row][b.col];
-    }
-  );
-
-  threatMoves.insert(threatMoves.end(), moves.begin(), moves.end());
-  return threatMoves;
 }
 ```
 
@@ -442,6 +411,15 @@ int GomokuAI::evaluate(
   const char player
 ) const {
   const char opponent = getOpponent(player);
+
+  // Function signature:
+  // std::pair<GomokuAI::SequenceSummary, GomokuAI::SequenceSummary> 
+  // GomokuAI::evaluateSequences(const BoardManager& boardManager);
+  // This function scans the board and returns 
+  // the SequenceSummary for both players.
+  // The SequenceSummary include counts of:
+  // open fours, semi-open fours, open threes, and semi-open threes.
+  // 
   // pSum: playerSummary, oSum: opponentSummary
   const auto [pSum, oSum] = evaluateSequences(boardManager);
 
@@ -452,8 +430,10 @@ int GomokuAI::evaluate(
     return -400000 - oSum.openFours * 2000;
   }
 
+  // Base score calculation
   int score = pSum.score - oSum.score;
 
+  // Special pattern bonuses
   const int openThreeBonus = 15000;
   score += openThreeBonus * (pSum.openThrees - oSum.openThrees);
 
@@ -499,29 +479,33 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
   }
 
   BoardPosition bestMove;
+  // Get candidate moves. candidateMoves() retrieves 
+  // candidate positions from BoardManager's candidate
+  // cache and sorts them based on threat levels.
+  // This is crucial for effective alpha-beta pruning.
   auto moves = candidateMoves(boardManager);
   if (isMaximizing) {
     int maxEval = std::numeric_limits<int>::min();
     for (const auto& pos : moves) {
-      boardManager.makeMove(pos);
+      boardManager.makeMove(pos); // Simulate move
       auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1,
                                         false, alpha, beta);
-      boardManager.undoMove();
+      boardManager.undoMove(); // Undo move
       if (eval > maxEval) { maxEval = eval; bestMove = pos; }
       alpha = std::max(alpha, eval);
-      if (beta <= alpha) break;
+      if (beta <= alpha) break; // Alpha cut-off
     }
     return {maxEval, bestMove};
   } else {
     int minEval = std::numeric_limits<int>::max();
     for (const auto& pos : moves) {
-      boardManager.makeMove(pos);
+      boardManager.makeMove(pos); // Simulate move
       auto [eval, _] = minimaxAlphaBeta(boardManager, depth - 1,
                                         true, alpha, beta);
-      boardManager.undoMove();
+      boardManager.undoMove(); // Undo move
       if (eval < minEval) { minEval = eval; bestMove = pos; }
       beta = std::min(beta, eval);
-      if (beta <= alpha) break;
+      if (beta <= alpha) break; // Beta cut-off
     }
     return {minEval, bestMove};
   }
@@ -529,40 +513,75 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
 ```
 
 ```cpp
-// 根节点分块并行（QtConcurrent + globalAlpha）
+// 根节点分块并行（QtConcurrent）
 BoardPosition GomokuAI::minimaxAlphaBetaRootParallel(
-  BoardManager& boardManager, int depth
+  BoardManager& boardManager,
+  int depth
 ) const {
+  // We parallelize only the root level of the minimax tree.
+  // Divide the possible moves into chunks, where each chunk 
+  // is processed in parallel. After processing a chunk, 
+  // update a global alpha based on the results from that chunk.
+  // 
+  // This to some extent preserves pruning: 
+  // pruning is still valid across chunks;
+  // But within each chunk, no pruning occurs.
+
   if (QThread::currentThread()->isInterruptionRequested()) {
-    return {-1, -1};
+      return {-1, -1};
   }
 
   BoardPosition bestMove;
   auto moves = candidateMoves(boardManager);
-       globalAlpha](const BoardPosition& pos) {
+  // Each chunk should have threadCount moves to maximize parallelism
+  // splitIntoChunks(content, chunkSize) is a utility function
+  // that divides the moves into chunks with each chunk containing
+  //  approximately chunkSize moves.
+  auto chunks = splitIntoChunks(moves, threadCount);
+
+  // Keep track of a global alpha across chunks 
+  // to enable cross-chunk pruning
+  int globalAlpha = std::numeric_limits<int>::min();
+
+  // Iterate over each chunk sequentially
+  // and process moves in parallel within the chunk
+  // updating globalAlpha after each chunk.
+  for (const auto& chunk : chunks) {
+    auto results = QtConcurrent::blockingMapped(
+      &threadPool,
+      chunk,
+      [this, &boardManager,
+       depth, globalAlpha](const BoardPosition& pos) {
         BoardManager simulatedBoard = boardManager;
         simulatedBoard.makeMove(pos);
         auto [eval, _] = minimaxAlphaBeta(
-          simulatedBoard, depth - 1, false, globalAlpha,
+          simulatedBoard,
+          depth - 1,
+          false,
+          globalAlpha,
           std::numeric_limits<int>::max()
         );
         return std::make_pair(eval, pos);
       }
     );
 
+    // Find the best move in this chunk
     int chunkMaxEval = std::numeric_limits<int>::min();
     BoardPosition chunkBestMove;
     for (const auto& [eval, pos] : results) {
-      if (eval > chunkMaxEval) { 
+      if (eval > chunkMaxEval) {
         chunkMaxEval = eval;
-        chunkBestMove = pos; 
+        chunkBestMove = pos;
       }
     }
-    if (chunkMaxEval > globalAlpha) { 
+
+    // Update global alpha and best move if needed
+    if (chunkMaxEval > globalAlpha) {
       globalAlpha = chunkMaxEval;
-      bestMove = chunkBestMove; 
+      bestMove = chunkBestMove;
     }
   }
+
   return bestMove;
 }
 ```
@@ -574,6 +593,7 @@ BoardPosition GomokuAI::minimaxAlphaBetaRootParallel(
 BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
   const BoardPosition pos
 ) {
+  // The CandidatesDelta type records changes to the candidate cache
   CandidatesDelta lastRecord;
   lastRecord.removedFromCache = candidateMap[pos.row][pos.col];
   candidateMovesCache.erase(pos);
@@ -596,6 +616,7 @@ BoardManager::CandidatesDelta BoardManager::updateCandidatesCache(
       }
     }
   }
+  // Insert newly added candidates into the cache
   candidateMovesCache.insert(lastRecord.addedCandidates.begin(),
                              lastRecord.addedCandidates.end());
   return lastRecord;
@@ -620,9 +641,13 @@ void BoardManager::reverseCandidatesCache(
 // 回滚落子
 void BoardManager::undoMove() {
   if (movesHistory.empty()) return;
+  // movesHistory is a stack of MoveRecord, which includes
+  // the position of the move and a CandidatesDelta
   MoveRecord lastRecord = movesHistory.back();
   BoardPosition position = lastRecord.position;
   board[position.row][position.col] = EMPTY;
+  // reverseCandidatesCache uses the CandidatesDelta
+  // to revert the candidate cache to a state before the move
   reverseCandidatesCache(lastRecord.candidatesDelta, position);
   movesHistory.pop_back();
   _blackTurn = !_blackTurn;
@@ -662,11 +687,17 @@ void GameManager::handleHumanMove(const BoardPosition position) {
 ```cpp
 // 独立线程与信号槽连接
 void GameWidget::setupGameManager() {
+  // GameManager is responsible for game logic and AI computations
   gameManager = new GameManager();
+  // Create a new thread for the game manager
   gameThread = new QThread(this);
+  // Move the game manager to the new thread
   gameManager->moveToThread(gameThread);
+  // Declare MoveResult as a metatype for signal-slot communication
+  // This enables MoveResult to be passed cross-thread via signals/slots
   qRegisterMetaType<MoveResult>("MoveResult");
   connectGameManagerSignals();
+  // Clean up on thread finish
   connect(
     gameThread, &QThread::finished,
     gameManager, &QObject::deleteLater
@@ -710,9 +741,16 @@ void GameWidget::connectGameManagerSignals() {
 void GameWidget::connectResetButton() {
   connect(resetButton, &QPushButton::clicked, this, [this]() {
     if (gameThread) {
+      // Request interruption of the game thread
+      // In GameManager and GomokuAI,
+      // isInterruptionRequested() is periodically checked
+      // to cooperatively cancel ongoing computations
       gameThread->requestInterruption();
       disconnect(gameManager, nullptr, this, nullptr);
       disconnect(gameManager, nullptr, board, nullptr);
+      // Wait for the thread to finish
+      // This happens after GameManager and GomokuAI
+      // detect the interruption request and interrupt their tasks
       gameThread->quit();
       gameThread->wait();
     }
@@ -721,53 +759,6 @@ void GameWidget::connectResetButton() {
     board->setThinking(false);
     boardStack->setCurrentIndex(1);
   });
-}
-```
-
-```cpp
-// 点击落子与棋盘绘制
-void BoardWidget::mousePressEvent(QMouseEvent *event) {
-  if (currentPlayerSnapshot != humanColor) { event->ignore(); return; }
-  if (event->button() != Qt::LeftButton) { 
-    QWidget::mousePressEvent(event); 
-    return; 
-  }
-  // 根据当前屏幕大小计算棋盘布局
-  // 并缓存在成员变量中 (`startX`, `startY`, `cellSize`)
-  calculateBoardLayout();
-  const int x = static_cast<int>(event->position().x());
-  const int y = static_cast<int>(event->position().y());
-  const int col = (x - startX + cellSize / 2) / cellSize;
-  const int row = (y - startY + cellSize / 2) / cellSize;
-  if (row < 0 || row >= BOARD_SIZE ||
-    col < 0 || col >= BOARD_SIZE) { event->ignore(); return; }
-  const int targetX = startX + col * cellSize;
-  const int targetY = startY + row * cellSize;
-  if (abs(x - targetX) > cellSize / 2.5 ||
-    abs(y - targetY) > cellSize / 2.5) { event->ignore(); return; }
-  emit cellSelected(row, col);
-  event->accept();
-}
-
-void BoardWidget::paintEvent(QPaintEvent *) {
-  QPainter painter(this);
-  painter.setRenderHint(QPainter::Antialiasing);
-  painter.fillRect(rect(), bgColor);
-  calculateBoardLayout();
-  drawBorders(painter);
-  drawGridLines(painter);
-  drawCriticalPoints(painter);
-  drawStones(painter);
-
-  // 绘制特殊状态下的覆盖层
-  if (boardFullSnapshot) drawWinnerOverlay(painter, "It's a Draw!");
-  if (winnerSnapshot != EMPTY)
-    drawWinnerOverlay(
-      painter,
-      winnerSnapshot == BLACK ? "Black Wins!" : "White Wins!"
-    );
-  if (!boardFullSnapshot && winnerSnapshot == EMPTY && thinking)
-    drawThinkingOverlay(painter);
 }
 ```
 
