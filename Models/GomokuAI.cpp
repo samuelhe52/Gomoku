@@ -348,11 +348,10 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
             }
             
             alpha = std::max(alpha, eval);
-            // beta comes from the parent and records the smallest value found by the parent so far
-            // so if beta <= alpha, no need to explore further, because the parent will not choose this path
-            // (parent is minimizing player)
+            // Prune: the minimizing parent already has a better option (beta),
+            // so it won't choose this branch regardless of remaining moves
             if (beta <= alpha) {
-                break; // Alpha cutoff
+                break;
             }
         }
         
@@ -371,11 +370,10 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
             }
             
             beta = std::min(beta, eval);
+            // Prune: the maximizing parent already has a better option (alpha),
+            // so it won't choose this branch regardless of remaining moves
             if (beta <= alpha) {
-                // alpha comes from the parent and records the largest value found by the parent so far
-                // so if beta <= alpha, no need to explore further, because the parent will not choose this path
-                // (parent is maximizing player)
-                break; // Beta cutoff
+                break;
             }
         }
         

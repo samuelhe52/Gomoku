@@ -121,7 +121,7 @@ minimax 搜索是一种适用于双人对弈游戏的算法，其中一方试图
 - 入口：`GomokuAI::getBestMove()`。空棋盘直接走中心；否则复制 `BoardManager` 并调用 `minimaxAlphaBetaRootParallel()`（[根节点并行化的 minimax + alpha-beta 剪枝](#minimax-搜索根节点并行化)）。
 - 主要递归体：`GomokuAI::minimaxAlphaBeta(BoardManager&, depth, isMaximizing, alpha, beta)`。
   - 终止条件：检测胜负（`BoardManager::checkWinner()`）或 `depth == 0`。
-    - 胜利/失败返回有符号整数极大/极小值（加入微小偏置，防止双方均将获胜时选择防守）。
+    - 胜利/失败返回有符号整数极大/极小值（加入偏置，优先选择获胜而不是防守）。
     - 否则用 `evaluate(board, _color)` 始终从 AI 视角打分。
   - 递归展开：
     - 生成候选走子：`candidateMoves(boardManager)`（[见候选位置缓存、查找及排序](#候选位置缓存查找及排序)）。
@@ -133,10 +133,10 @@ minimax 搜索是一种适用于双人对弈游戏的算法，其中一方试图
 Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索过程中维护两个边界值（α 和 β），有效剪去不可能影响最终决策的分支。举例来说，对于一个最大化节点，如果已经找到一个分数高于 β 的走法（β 记录了父节点能达到的最小值），则无需继续探索该节点的其他子节点，因为最小化的父节点不会选择这个路径。
 
 - 标准 α-β 剪枝：
-  - 最大层：`alpha = max(alpha, eval)`；当 `beta <= alpha` 时发生 β cut-off。
-  - 最小层：`beta = min(beta, eval)`；当 `beta <= alpha` 时发生 α cut-off。
+  - 最大层：`alpha = max(alpha, eval)`；当 `beta <= alpha` 时剪枝，因为最小化的父节点不会选择该分支。
+  - 最小层：`beta = min(beta, eval)`；当 `beta <= alpha` 时剪枝，因为最大化的父节点不会选择该分支。
 
-注：根节点并行时仍可保留“跨块”剪枝：使用 `globalAlpha` 将前一块的最佳值作为下一块的 α 下界，减少后续块的分支探索（[见 minimax 搜索根节点并行化](#minimax-搜索根节点并行化)）。
+注：根节点并行时仍可保留"跨块"剪枝：使用 `globalAlpha` 将前一块的最佳值作为下一块的 α 下界，减少后续块的分支探索（[见 minimax 搜索根节点并行化](#minimax-搜索根节点并行化)）。
 
 ### 评估函数
 
@@ -493,7 +493,8 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
       boardManager.undoMove(); // Undo move
       if (eval > maxEval) { maxEval = eval; bestMove = pos; }
       alpha = std::max(alpha, eval);
-      if (beta <= alpha) break; // Alpha cut-off
+      // Prune: minimizing parent has a better option (beta)
+      if (beta <= alpha) break;
     }
     return {maxEval, bestMove};
   } else {
@@ -505,7 +506,8 @@ std::pair<int, BoardPosition> GomokuAI::minimaxAlphaBeta(
       boardManager.undoMove(); // Undo move
       if (eval < minEval) { minEval = eval; bestMove = pos; }
       beta = std::min(beta, eval);
-      if (beta <= alpha) break; // Beta cut-off
+      // Prune: maximizing parent has a better option (alpha)
+      if (beta <= alpha) break;
     }
     return {minEval, bestMove};
   }
