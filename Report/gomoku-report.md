@@ -1,7 +1,5 @@
-<!-- markdownlint-disable MD041 MD007 MD031 MD032 MD025 MD001 MD013 -->
-
 ---
-documentclass: article
+documentclass: ctexart
 papersize: a4
 lang: zh-CN
 geometry:
@@ -10,13 +8,12 @@ fontsize: 12pt
 linestretch: 1.5
 numbersections: true
 toc: false
-toc-depth: 3
 colorlinks: true
 linkcolor: blue
 urlcolor: blue
 mainfont: "Source Han Serif SC"
 CJKmainfont: "Source Han Serif SC"
-CJKoptions: Scale=0.95
+CJKmonofont: "Source Han Serif SC"
 monofont: "JetBrains Mono"
 header-includes:
   - |
@@ -29,7 +26,7 @@ header-includes:
     \AtBeginEnvironment{Highlighting}{\footnotesize}
 ---
 
-<!-- markdownlint-enable MD041 MD007 MD031 MD032 MD025 MD001 -->
+<!-- markdownlint-disable MD041 -->
 
 \pagenumbering{gobble}
 \begin{titlepage}
@@ -81,8 +78,6 @@ header-includes:
 - **Tests/**：性能测试代码
 - **docs/**：设计讨论与总结
 
-\newpage
-
 ### 文件结构
 
 ```plaintext
@@ -109,6 +104,8 @@ header-includes:
 ```
 
 注：`GameManager` 职责上属于 MVC 的 Controller，由于本项目中 Controller 仅有一个，因此当前置于 `Models/` 目录管理；`docs/` 目录下存放与 AI 的讨论记录及总结。
+
+\clearpage
 
 # 详细设计
 
@@ -259,8 +256,6 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
 
 注：测试环境为 Apple M1 Pro，8 核 CPU (6P + 2E)，16GB 内存，macOS Sequoia 15.7.2。
 
-\newpage
-
 # 测试结果
 
 ## 运行截图
@@ -307,6 +302,8 @@ Alpha-Beta 剪枝是一种用于优化 minimax 搜索的技巧，通过在搜索
     \textcolor{gray}{\small 游戏结束提示}
 \end{minipage}
 \end{center}
+
+\clearpage
 
 ## 性能测试
 
